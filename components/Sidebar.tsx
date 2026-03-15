@@ -1,5 +1,6 @@
 'use client';
 
+// HMR reset marker - v2-modern-ui-ux
 import { FileText, History, Settings2 } from 'lucide-react';
 import { useAppStore } from '@/store/appStore';
 import DocumentPanel from './DocumentPanel';

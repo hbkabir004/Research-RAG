@@ -21,7 +21,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css"
         />
       </head>
-      <body className="bg-[#0a0c10] text-[#e8e0d4] font-sans antialiased">
+      <body className="bg-[#06070c] text-[#f0ede8] font-sans antialiased">
         {children}
       </body>
     </html>

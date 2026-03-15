@@ -1,5 +1,6 @@
 'use client';
 
+// HMR reset marker - v2-modern-ui-ux
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { Send, Zap, AlertCircle } from 'lucide-react';
 import { useAppStore } from '@/store/appStore';
