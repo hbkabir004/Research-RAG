@@ -79,49 +79,49 @@ export default function SettingsPanel() {
 
   return (
     <div className="flex flex-col h-full overflow-y-auto">
-      <div className="p-3 space-y-5">
+      <div className="p-4 space-y-6">
 
         {/* API Keys */}
         <section>
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="text-xs uppercase tracking-widest text-[#5a5448]">OpenRouter Keys</h3>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-xs uppercase tracking-widest font-semibold text-[#6b6460]">OpenRouter Keys</h3>
             {totalCount > 0 && (
-              <span className={`text-xs font-mono-custom ${activeCount > 0 ? 'text-[#3a9060]' : 'text-[#c04040]'}`}>
+              <span className={`text-xs font-mono-custom font-medium ${activeCount > 0 ? 'text-[#4aad7a]' : 'text-[#d85555]'}`}>
                 {activeCount}/{totalCount} active
               </span>
             )}
           </div>
 
           {/* Key list */}
-          <div className="space-y-1.5 mb-3">
+          <div className="space-y-2 mb-4">
             {settings.apiKeys.length === 0 ? (
-              <p className="text-xs text-[#3a4050] text-center py-3">No keys added yet</p>
+              <p className="text-xs text-[#6b6460] text-center py-4">No keys added yet</p>
             ) : (
               settings.apiKeys.map((keyObj) => (
                 <div
                   key={keyObj.id}
-                  className="flex items-center gap-2 p-2.5 rounded-md border border-[#1e2535] bg-[#0f1219]"
+                  className="flex items-center gap-3 p-3 rounded-lg border border-[#252d3d] bg-[#0f1219] hover:border-[#252d3d]/80 transition-all"
                 >
                   <KeyStatusIcon status={keyObj.status} />
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs text-[#e8e0d4] leading-none">{keyObj.label}</p>
-                    <p className="text-xs text-[#3a4050] font-mono-custom mt-0.5">{maskKey(keyObj.key)}</p>
+                    <p className="text-xs font-medium text-[#f0ede8] leading-none">{keyObj.label}</p>
+                    <p className="text-xs text-[#6b6460] font-mono-custom mt-1">{maskKey(keyObj.key)}</p>
                   </div>
-                  <div className="flex items-center gap-1">
+                  <div className="flex items-center gap-1.5">
                     <button
                       onClick={() => handleTestKey(keyObj)}
                       disabled={testingKeyId === keyObj.id}
-                      className="text-xs px-2 py-0.5 rounded border border-[#1e2535] text-[#9a9080] hover:border-[#c8962a] hover:text-[#c8962a] transition-colors disabled:opacity-50"
+                      className="text-xs px-3 py-1.5 rounded-lg border border-[#252d3d] text-[#a8a098] hover:border-[#d4a847]/50 hover:text-[#d4a847] hover:bg-[#d4a847]/5 transition-all disabled:opacity-50 font-medium"
                     >
                       {testingKeyId === keyObj.id ? (
-                        <Loader2 size={10} className="animate-spin" />
+                        <Loader2 size={11} className="animate-spin" />
                       ) : 'Test'}
                     </button>
                     <button
                       onClick={() => removeApiKey(keyObj.id)}
-                      className="p-1 text-[#3a4050] hover:text-[#c04040] transition-colors"
+                      className="p-1.5 text-[#6b6460] hover:text-[#d85555] hover:bg-[#d85555]/10 rounded-lg transition-all"
                     >
-                      <Trash2 size={12} />
+                      <Trash2 size={13} />
                     </button>
                   </div>
                 </div>
@@ -130,34 +130,34 @@ export default function SettingsPanel() {
           </div>
 
           {/* Add new key */}
-          <div className="space-y-2">
+          <div className="space-y-2.5">
             <input
               value={newKeyLabel}
               onChange={(e) => setNewKeyLabel(e.target.value)}
               placeholder="Key label (optional)"
-              className="w-full px-3 py-2 text-xs bg-[#0f1219] border border-[#1e2535] rounded-md text-[#e8e0d4] placeholder-[#3a4050] focus:outline-none focus:border-[#c8962a] transition-colors"
+              className="w-full px-4 py-2.5 text-xs bg-[#0f1219] border border-[#252d3d] rounded-lg text-[#f0ede8] placeholder-[#6b6460] focus:outline-none focus:border-[#d4a847]/60 focus:shadow-lg focus:shadow-[#d4a847]/10 transition-all"
             />
-            <div className="flex gap-2">
+            <div className="flex gap-2.5">
               <input
                 value={newKeyInput}
                 onChange={(e) => { setNewKeyInput(e.target.value); setAddError(''); }}
                 onKeyDown={(e) => e.key === 'Enter' && handleAddKey()}
                 placeholder="sk-or-v1-..."
                 type="password"
-                className="flex-1 px-3 py-2 text-xs bg-[#0f1219] border border-[#1e2535] rounded-md text-[#e8e0d4] placeholder-[#3a4050] focus:outline-none focus:border-[#c8962a] transition-colors font-mono-custom"
+                className="flex-1 px-4 py-2.5 text-xs bg-[#0f1219] border border-[#252d3d] rounded-lg text-[#f0ede8] placeholder-[#6b6460] focus:outline-none focus:border-[#d4a847]/60 focus:shadow-lg focus:shadow-[#d4a847]/10 transition-all font-mono-custom"
               />
               <button
                 onClick={handleAddKey}
-                className="flex items-center gap-1 px-3 py-2 text-xs bg-[#1e2535] hover:bg-[#c8962a] text-[#9a9080] hover:text-[#0a0c10] rounded-md transition-all font-medium"
+                className="flex items-center gap-2 px-4 py-2.5 text-xs bg-[#d4a847] hover:bg-[#f0c840] text-[#06070c] hover:text-[#06070c] rounded-lg transition-all font-semibold shadow-sm hover:shadow-md hover:shadow-[#d4a847]/30"
               >
-                <Plus size={12} />
+                <Plus size={13} />
                 Add
               </button>
             </div>
-            {addError && <p className="text-xs text-[#c04040]">{addError}</p>}
-            <p className="text-xs text-[#3a4050]">
+            {addError && <p className="text-xs text-[#d85555] font-medium">{addError}</p>}
+            <p className="text-xs text-[#6b6460]">
               Get free keys at{' '}
-              <a href="https://openrouter.ai/keys" target="_blank" rel="noopener noreferrer" className="text-[#c8962a] hover:underline">
+              <a href="https://openrouter.ai/keys" target="_blank" rel="noopener noreferrer" className="text-[#d4a847] hover:text-[#f0c840] transition-colors">
                 openrouter.ai/keys
               </a>
             </p>
@@ -168,18 +168,18 @@ export default function SettingsPanel() {
 
         {/* Model Selection */}
         <section>
-          <h3 className="text-xs uppercase tracking-widest text-[#5a5448] mb-3">Language Model</h3>
+          <h3 className="text-xs uppercase tracking-widest font-semibold text-[#6b6460] mb-4">Language Model</h3>
           <div className="relative">
             <select
               value={settings.selectedModel}
               onChange={(e) => updateSettings({ selectedModel: e.target.value })}
-              className="w-full appearance-none px-3 py-2 text-xs bg-[#0f1219] border border-[#1e2535] rounded-md text-[#e8e0d4] focus:outline-none focus:border-[#c8962a] transition-colors cursor-pointer pr-8"
+              className="w-full appearance-none px-4 py-2.5 text-xs bg-[#0f1219] border border-[#252d3d] rounded-lg text-[#f0ede8] focus:outline-none focus:border-[#d4a847]/60 focus:shadow-lg focus:shadow-[#d4a847]/10 transition-all cursor-pointer pr-10"
             >
               {FREE_MODELS.map((m) => (
                 <option key={m.id} value={m.id}>{m.name}</option>
               ))}
             </select>
-            <ChevronDown size={12} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#5a5448] pointer-events-none" />
+            <ChevronDown size={13} className="absolute right-3 top-1/2 -translate-y-1/2 text-[#6b6460] pointer-events-none" />
           </div>
         </section>
 
@@ -187,42 +187,42 @@ export default function SettingsPanel() {
 
         {/* RAG Settings */}
         <section>
-          <h3 className="text-xs uppercase tracking-widest text-[#5a5448] mb-3">RAG Settings</h3>
-          <div className="space-y-3">
+          <h3 className="text-xs uppercase tracking-widest font-semibold text-[#6b6460] mb-4">RAG Settings</h3>
+          <div className="space-y-4">
             <div>
-              <div className="flex items-center justify-between mb-1">
-                <label className="text-xs text-[#9a9080]">Chunks per query</label>
-                <span className="text-xs text-[#c8962a] font-mono-custom">{settings.maxChunksPerQuery}</span>
+              <div className="flex items-center justify-between mb-2.5">
+                <label className="text-xs font-medium text-[#a8a098]">Chunks per query</label>
+                <span className="text-xs text-[#d4a847] font-mono-custom font-semibold">{settings.maxChunksPerQuery}</span>
               </div>
               <input
                 type="range" min="3" max="10" step="1"
                 value={settings.maxChunksPerQuery}
                 onChange={(e) => updateSettings({ maxChunksPerQuery: parseInt(e.target.value) })}
-                className="w-full accent-[#c8962a] h-1 rounded"
+                className="w-full accent-[#d4a847] h-1.5 rounded-lg"
               />
             </div>
             <div>
-              <div className="flex items-center justify-between mb-1">
-                <label className="text-xs text-[#9a9080]">Chunk size (chars)</label>
-                <span className="text-xs text-[#c8962a] font-mono-custom">{settings.chunkSize}</span>
+              <div className="flex items-center justify-between mb-2.5">
+                <label className="text-xs font-medium text-[#a8a098]">Chunk size (chars)</label>
+                <span className="text-xs text-[#d4a847] font-mono-custom font-semibold">{settings.chunkSize}</span>
               </div>
               <input
                 type="range" min="400" max="1600" step="100"
                 value={settings.chunkSize}
                 onChange={(e) => updateSettings({ chunkSize: parseInt(e.target.value) })}
-                className="w-full accent-[#c8962a] h-1 rounded"
+                className="w-full accent-[#d4a847] h-1.5 rounded-lg"
               />
             </div>
 
-            <label className="flex items-center justify-between cursor-pointer">
-              <span className="text-xs text-[#9a9080]">Auto plagiarism check</span>
+            <label className="flex items-center justify-between cursor-pointer p-3 rounded-lg bg-[#0f1219] border border-[#252d3d] hover:border-[#252d3d]/80 transition-all">
+              <span className="text-xs font-medium text-[#a8a098]">Auto plagiarism check</span>
               <div
                 onClick={() => updateSettings({ autoCheckPlagiarism: !settings.autoCheckPlagiarism })}
-                className={`relative w-9 h-5 rounded-full transition-colors cursor-pointer ${
-                  settings.autoCheckPlagiarism ? 'bg-[#c8962a]' : 'bg-[#1e2535]'
+                className={`relative w-10 h-6 rounded-full transition-all cursor-pointer ${
+                  settings.autoCheckPlagiarism ? 'bg-[#d4a847] shadow-md shadow-[#d4a847]/30' : 'bg-[#252d3d]'
                 }`}
               >
-                <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-transform ${
+                <div className={`absolute top-0.5 w-5 h-5 rounded-full bg-white transition-transform ${
                   settings.autoCheckPlagiarism ? 'translate-x-4' : 'translate-x-0.5'
                 }`} />
               </div>

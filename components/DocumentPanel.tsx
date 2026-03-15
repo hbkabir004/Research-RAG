@@ -99,31 +99,31 @@ export default function DocumentPanel() {
     <div className="flex flex-col h-full">
       {/* Stats bar */}
       {readyDocs.length > 0 && (
-        <div className="px-3 py-2 flex items-center gap-3 border-b border-[#1e2535]">
+        <div className="px-4 py-3 flex items-center gap-3 border-b border-[#252d3d] bg-[#0f1219]/50">
           <div className="flex items-center gap-1.5">
-            <BookOpen size={11} className="text-[#c8962a]" />
-            <span className="text-xs text-[#9a9080]">{readyDocs.length} docs</span>
+            <BookOpen size={13} className="text-[#d4a847]" />
+            <span className="text-xs font-medium text-[#a8a098]">{readyDocs.length} docs</span>
           </div>
-          <span className="text-[#3a4050]">·</span>
-          <span className="text-xs text-[#9a9080]">{totalChunks} chunks indexed</span>
+          <span className="text-[#6b6460]">·</span>
+          <span className="text-xs text-[#a8a098]">{totalChunks} chunks indexed</span>
         </div>
       )}
 
       {/* Drop zone */}
       <div
-        className={`m-3 border-2 border-dashed rounded-lg p-4 text-center cursor-pointer transition-all duration-200 ${
+        className={`m-4 border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-all duration-300 ${
           isDragging
-            ? 'border-[#c8962a] bg-[rgba(200,150,42,0.05)]'
-            : 'border-[#1e2535] hover:border-[#3a4a60] hover:bg-[#0f1219]'
+            ? 'border-[#d4a847] bg-[#d4a847]/8 shadow-lg shadow-[#d4a847]/10'
+            : 'border-[#252d3d] hover:border-[#d4a847]/50 hover:bg-[#0f1219]/50'
         }`}
         onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
         onDragLeave={() => setIsDragging(false)}
         onDrop={handleDrop}
         onClick={() => fileInputRef.current?.click()}
       >
-        <Upload size={18} className={`mx-auto mb-2 ${isDragging ? 'text-[#c8962a]' : 'text-[#5a5448]'}`} />
-        <p className="text-xs text-[#5a5448]">Drop .pdf or .docx files</p>
-        <p className="text-xs text-[#3a4050] mt-0.5">or click to browse</p>
+        <Upload size={20} className={`mx-auto mb-2 transition-colors ${isDragging ? 'text-[#d4a847]' : 'text-[#6b6460]'}`} />
+        <p className={`text-xs font-medium ${isDragging ? 'text-[#d4a847]' : 'text-[#a8a098]'}`}>Drop .pdf or .docx files</p>
+        <p className="text-xs text-[#6b6460] mt-1">or click to browse</p>
         <input
           ref={fileInputRef}
           type="file"
@@ -135,12 +135,12 @@ export default function DocumentPanel() {
       </div>
 
       {/* Document list */}
-      <div className="flex-1 overflow-y-auto px-3 space-y-1.5">
+      <div className="flex-1 overflow-y-auto px-4 py-3 space-y-2">
         {documents.length === 0 ? (
           <div className="text-center py-8">
-            <FileText size={28} className="mx-auto text-[#2a3040] mb-2" />
-            <p className="text-xs text-[#3a4050]">No documents yet</p>
-            <p className="text-xs text-[#2a3040] mt-1">Upload research papers to begin</p>
+            <FileText size={32} className="mx-auto text-[#6b6460]/40 mb-3" />
+            <p className="text-xs font-medium text-[#6b6460]">No documents yet</p>
+            <p className="text-xs text-[#6b6460]/60 mt-1">Upload research papers to begin</p>
           </div>
         ) : (
           documents.map((doc) => (
@@ -154,45 +154,45 @@ export default function DocumentPanel() {
 
 function DocumentItem({ doc, onRemove }: { doc: ProcessedDocument; onRemove: () => void }) {
   return (
-    <div className={`group flex items-start gap-2 p-2.5 rounded-md border transition-all ${
+    <div className={`group flex items-start gap-3 p-3 rounded-lg border transition-all ${
       doc.status === 'ready'
-        ? 'border-[#1e2535] bg-[#0f1219] hover:border-[#2a3545]'
+        ? 'border-[#252d3d] bg-[#0f1219] hover:border-[#d4a847]/40 hover:bg-[#151a24]'
         : doc.status === 'error'
-        ? 'border-[#4a2020] bg-[#1a0f0f]'
-        : 'border-[#1e2535] bg-[#0f1219]'
+        ? 'border-[#5a3030] bg-[#1a0f0f]'
+        : 'border-[#252d3d] bg-[#0f1219]'
     }`}>
       {/* Icon */}
       <div className="flex-shrink-0 mt-0.5">
         {doc.status === 'processing' ? (
-          <Loader2 size={14} className="text-[#c8962a] animate-spin" />
+          <Loader2 size={15} className="text-[#d4a847] animate-spin" />
         ) : doc.status === 'error' ? (
-          <AlertCircle size={14} className="text-[#c04040]" />
+          <AlertCircle size={15} className="text-[#d85555]" />
         ) : (
-          <CheckCircle size={14} className="text-[#3a9060]" />
+          <CheckCircle size={15} className="text-[#4aad7a]" />
         )}
       </div>
 
       {/* Info */}
       <div className="flex-1 min-w-0">
-        <p className="text-xs text-[#e8e0d4] truncate leading-tight" title={doc.name}>
+        <p className="text-xs font-medium text-[#f0ede8] truncate leading-tight" title={doc.name}>
           {doc.name}
         </p>
-        <div className="flex items-center gap-2 mt-0.5">
-          <span className="text-xs text-[#5a5448] uppercase font-mono-custom">{doc.type}</span>
-          <span className="text-[#2a3040]">·</span>
-          <span className="text-xs text-[#5a5448]">{formatSize(doc.size)}</span>
+        <div className="flex items-center gap-2 mt-1">
+          <span className="text-xs text-[#6b6460] uppercase font-mono-custom">{doc.type}</span>
+          <span className="text-[#6b6460]">·</span>
+          <span className="text-xs text-[#6b6460]">{formatSize(doc.size)}</span>
           {doc.status === 'ready' && doc.chunks.length > 0 && (
             <>
-              <span className="text-[#2a3040]">·</span>
-              <span className="text-xs text-[#3a9060]">{doc.chunks.length} chunks</span>
+              <span className="text-[#6b6460]">·</span>
+              <span className="text-xs text-[#4aad7a] font-medium">{doc.chunks.length} chunks</span>
             </>
           )}
         </div>
         {doc.status === 'error' && doc.errorMessage && (
-          <p className="text-xs text-[#c04040] mt-0.5 truncate">{doc.errorMessage}</p>
+          <p className="text-xs text-[#d85555] mt-1 truncate">{doc.errorMessage}</p>
         )}
         {doc.status === 'processing' && (
-          <p className="text-xs text-[#c8962a] mt-0.5">Indexing…</p>
+          <p className="text-xs text-[#d4a847] mt-1">Indexing…</p>
         )}
       </div>
 
@@ -200,9 +200,9 @@ function DocumentItem({ doc, onRemove }: { doc: ProcessedDocument; onRemove: () 
       {doc.status !== 'processing' && (
         <button
           onClick={onRemove}
-          className="flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity p-0.5 hover:text-[#c04040] text-[#5a5448]"
+          className="flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:text-[#d85555] text-[#6b6460] hover:bg-[#d85555]/10 rounded"
         >
-          <X size={13} />
+          <X size={14} />
         </button>
       )}
     </div>
