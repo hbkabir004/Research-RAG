@@ -20,25 +20,25 @@ export default function Sidebar() {
   const keyCount = settings.apiKeys.filter((k) => k.status !== 'error').length;
 
   return (
-    <aside className="flex flex-col h-full border-r border-[#1e2535] bg-[#0a0c10]">
+    <aside className="flex flex-col h-full bg-[#06070c]">
       {/* Logo */}
-      <div className="px-4 py-3 border-b border-[#1e2535]">
+      <div className="px-5 py-4 border-b border-[#252d3d] bg-gradient-to-b from-[#0f1219] to-[#06070c]">
         <h1
-          className="text-xl font-semibold text-[#c8962a]"
+          className="text-xl font-semibold text-[#d4a847] tracking-tight"
           style={{ fontFamily: 'Cormorant Garamond, serif' }}
         >
-          Research<span className="text-[#e8e0d4]">AI</span>
+          Research<span className="text-[#f0ede8]">AI</span>
         </h1>
-        <p className="text-xs text-[#3a4050] mt-0.5">MSc Research Companion</p>
+        <p className="text-xs text-[#6b6460] mt-1 font-medium">MSc Research Companion</p>
       </div>
 
       {/* Role Selector */}
-      <div className="border-b border-[#1e2535]">
+      <div className="border-b border-[#252d3d]">
         <RoleSelector />
       </div>
 
       {/* Tab bar */}
-      <div className="flex border-b border-[#1e2535]">
+      <div className="flex border-b border-[#252d3d] bg-[#0f1219]/50">
         {tabs.map((tab) => {
           const Icon = tab.icon;
           const badge =
@@ -49,16 +49,16 @@ export default function Sidebar() {
             <button
               key={tab.id}
               onClick={() => setActivePanel(tab.id)}
-              className={`flex-1 flex flex-col items-center gap-0.5 py-2 text-xs transition-colors relative ${
+              className={`flex-1 flex flex-col items-center gap-0.5 py-3 text-xs transition-all relative font-medium ${
                 activePanel === tab.id
-                  ? 'text-[#c8962a] border-b-2 border-[#c8962a]'
-                  : 'text-[#5a5448] hover:text-[#9a9080]'
+                  ? 'text-[#d4a847] border-b-2 border-[#d4a847]'
+                  : 'text-[#6b6460] hover:text-[#a8a098]'
               }`}
             >
-              <Icon size={14} />
+              <Icon size={15} />
               <span>{tab.label}</span>
               {badge > 0 && (
-                <span className="absolute top-1 right-3 w-4 h-4 rounded-full bg-[#c8962a] text-[#0a0c10] text-[9px] font-bold flex items-center justify-center">
+                <span className="absolute top-1.5 right-2 w-4 h-4 rounded-full bg-[#d4a847] text-[#06070c] text-[9px] font-bold flex items-center justify-center shadow-sm">
                   {badge}
                 </span>
               )}

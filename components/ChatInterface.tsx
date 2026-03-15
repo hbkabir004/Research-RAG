@@ -225,7 +225,7 @@ export default function ChatInterface() {
       <WritingModeBar />
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto px-6 py-4">
+      <div className="flex-1 overflow-y-auto px-6 py-6 space-y-1">
         {messages.length === 0 ? (
           <WelcomeScreen hasDocuments={hasDocuments} hasKeys={hasKeys} />
         ) : (
@@ -240,22 +240,22 @@ export default function ChatInterface() {
 
       {/* Error banner */}
       {error && (
-        <div className="mx-4 mb-2 flex items-start gap-2 px-3 py-2 rounded-md bg-[#1a0f0f] border border-[#4a2020] text-xs text-[#c04040]">
-          <AlertCircle size={13} className="flex-shrink-0 mt-0.5" />
-          <span className="flex-1">{error}</span>
-          <button onClick={() => setError(null)} className="text-[#5a5448] hover:text-[#9a9080]">✕</button>
+        <div className="mx-4 mb-3 flex items-start gap-2.5 px-4 py-3 rounded-lg bg-[#1a0f0f] border border-[#5a3030] text-xs text-[#d85555] backdrop-blur-sm animate-fade-in">
+          <AlertCircle size={14} className="flex-shrink-0 mt-0.5" />
+          <span className="flex-1 leading-relaxed">{error}</span>
+          <button onClick={() => setError(null)} className="text-[#6b6460] hover:text-[#a8a098] transition-colors flex-shrink-0">✕</button>
         </div>
       )}
 
       {/* Input area */}
-      <div className="px-4 pb-4 pt-2">
+      <div className="px-5 pb-5 pt-3 border-t border-[#252d3d] bg-gradient-to-t from-[#06070c] to-transparent">
         {writingMode && (
-          <div className="mb-2 flex items-center gap-1.5 text-xs text-[#c8962a]">
-            <Zap size={11} />
+          <div className="mb-3 flex items-center gap-1.5 text-xs text-[#d4a847] font-medium px-1">
+            <Zap size={12} />
             <span>Writing mode: <strong>{writingMode.replace('-', ' ')}</strong> — describe what you need</span>
           </div>
         )}
-        <div className="flex items-end gap-2 rounded-xl border border-[#1e2535] bg-[#0f1219] px-3 py-2 focus-within:border-[#c8962a]/50 transition-colors">
+        <div className="flex items-end gap-2.5 rounded-xl border border-[#252d3d] bg-[#0f1219] px-4 py-3 focus-within:border-[#d4a847]/60 focus-within:shadow-lg focus-within:shadow-[#d4a847]/10 transition-all">
           <textarea
             ref={textareaRef}
             value={input}
@@ -272,17 +272,17 @@ export default function ChatInterface() {
             }
             disabled={isStreaming || !hasKeys}
             rows={1}
-            className="flex-1 bg-transparent text-sm text-[#e8e0d4] placeholder-[#3a4050] resize-none focus:outline-none leading-relaxed py-1 disabled:opacity-50"
+            className="flex-1 bg-transparent text-sm text-[#f0ede8] placeholder-[#6b6460] resize-none focus:outline-none leading-relaxed py-1 disabled:opacity-50"
           />
           <button
             onClick={sendMessage}
             disabled={!input.trim() || isStreaming || !hasKeys}
-            className="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-lg bg-[#c8962a] hover:bg-[#e8b040] disabled:opacity-30 disabled:cursor-not-allowed transition-all mb-0.5"
+            className="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-lg bg-[#d4a847] hover:bg-[#f0c840] disabled:opacity-25 disabled:cursor-not-allowed transition-all duration-200 shadow-sm hover:shadow-md hover:shadow-[#d4a847]/30 mb-0.5"
           >
-            <Send size={14} className="text-[#0a0c10]" />
+            <Send size={14} className="text-[#06070c] font-medium" />
           </button>
         </div>
-        <p className="text-xs text-[#2a3040] mt-1.5 text-center">
+        <p className="text-xs text-[#6b6460] mt-2 text-center">
           ↵ Send · Shift+↵ New line{isStreaming ? ' · Generating…' : ''}
         </p>
       </div>
@@ -293,16 +293,16 @@ export default function ChatInterface() {
 function WelcomeScreen({ hasDocuments, hasKeys }: { hasDocuments: boolean; hasKeys: boolean }) {
   return (
     <div className="flex flex-col items-center justify-center h-full text-center select-none">
-      <div className="mb-6">
-        <h2 className="font-display text-4xl text-[#c8962a] mb-2" style={{ fontFamily: 'Cormorant Garamond, serif' }}>
+      <div className="mb-8 animate-fade-in">
+        <h2 className="font-display text-5xl text-[#d4a847] mb-3 font-semibold tracking-tight" style={{ fontFamily: 'Cormorant Garamond, serif' }}>
           Research AI
         </h2>
-        <p className="text-sm text-[#5a5448] max-w-xs">
+        <p className="text-base text-[#a8a098] max-w-sm leading-relaxed">
           Your intelligent MSc research companion powered by retrieval-augmented generation
         </p>
       </div>
 
-      <div className="grid grid-cols-1 gap-2 w-full max-w-md">
+      <div className="grid grid-cols-1 gap-3 w-full max-w-md">
         <Step
           num="1"
           done={hasKeys}
@@ -323,7 +323,7 @@ function WelcomeScreen({ hasDocuments, hasKeys }: { hasDocuments: boolean; hasKe
         />
       </div>
 
-      <div className="mt-8 flex flex-wrap gap-2 justify-center max-w-md">
+      <div className="mt-10 flex flex-wrap gap-2 justify-center max-w-md">
         {[
           'Summarize the methodology section',
           'What are the key findings?',
@@ -332,7 +332,7 @@ function WelcomeScreen({ hasDocuments, hasKeys }: { hasDocuments: boolean; hasKe
         ].map((q) => (
           <span
             key={q}
-            className="text-xs px-3 py-1.5 rounded-full border border-[#1e2535] text-[#5a5448] hover:border-[#c8962a]/40 hover:text-[#9a9080] transition-colors cursor-default"
+            className="text-xs px-3 py-2 rounded-lg border border-[#252d3d] text-[#a8a098] hover:border-[#d4a847]/50 hover:text-[#d4a847] hover:bg-[#d4a847]/5 transition-all cursor-default"
           >
             {q}
           </span>
@@ -344,13 +344,13 @@ function WelcomeScreen({ hasDocuments, hasKeys }: { hasDocuments: boolean; hasKe
 
 function Step({ num, done, title, desc }: { num: string; done: boolean; title: string; desc: string }) {
   return (
-    <div className={`flex items-center gap-3 px-4 py-3 rounded-lg border ${done ? 'border-[#3a9060]/30 bg-[#0a1a10]' : 'border-[#1e2535] bg-[#0f1219]'}`}>
-      <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 ${done ? 'bg-[#3a9060] text-white' : 'bg-[#1e2535] text-[#5a5448]'}`}>
+    <div className={`flex items-center gap-3 px-4 py-3 rounded-lg border transition-all ${done ? 'border-[#4aad7a]/40 bg-[#051410]' : 'border-[#252d3d] bg-[#0f1219]'}`}>
+      <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 transition-all ${done ? 'bg-[#4aad7a] text-white shadow-lg shadow-[#4aad7a]/30' : 'bg-[#252d3d] text-[#a8a098]'}`}>
         {done ? '✓' : num}
       </div>
       <div className="text-left">
-        <p className={`text-xs font-medium ${done ? 'text-[#3a9060]' : 'text-[#9a9080]'}`}>{title}</p>
-        <p className="text-xs text-[#3a4050]">{desc}</p>
+        <p className={`text-xs font-semibold ${done ? 'text-[#4aad7a]' : 'text-[#a8a098]'}`}>{title}</p>
+        <p className="text-xs text-[#6b6460]">{desc}</p>
       </div>
     </div>
   );

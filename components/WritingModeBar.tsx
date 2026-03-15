@@ -19,20 +19,20 @@ export default function WritingModeBar() {
   const { writingMode, setWritingMode } = useAppStore();
 
   return (
-    <div className="flex items-center gap-2 px-3 py-2 border-b border-[#1e2535] overflow-x-auto">
-      <div className="flex items-center gap-1.5 flex-shrink-0">
-        <PenLine size={12} className="text-[#c8962a]" />
-        <span className="text-xs text-[#5a5448]">Write:</span>
+    <div className="flex items-center gap-3 px-4 py-3 border-b border-[#252d3d] overflow-x-auto bg-[#0f1219]/50">
+      <div className="flex items-center gap-2 flex-shrink-0">
+        <PenLine size={13} className="text-[#d4a847]" />
+        <span className="text-xs font-medium text-[#6b6460]">Write:</span>
       </div>
-      <div className="flex items-center gap-1 flex-nowrap">
+      <div className="flex items-center gap-1.5 flex-nowrap">
         {WRITING_MODES.map((mode) => (
           <button
             key={mode.id}
             onClick={() => setWritingMode(writingMode === mode.id ? null : mode.id)}
-            className={`flex-shrink-0 px-2.5 py-1 text-xs rounded-full border transition-all ${
+            className={`flex-shrink-0 px-3 py-1.5 text-xs rounded-lg border transition-all font-medium ${
               writingMode === mode.id
-                ? 'bg-[#c8962a] border-[#c8962a] text-[#0a0c10] font-medium'
-                : 'border-[#1e2535] text-[#5a5448] hover:border-[#3a4a60] hover:text-[#9a9080]'
+                ? 'bg-[#d4a847] border-[#d4a847] text-[#06070c] shadow-md shadow-[#d4a847]/30'
+                : 'border-[#252d3d] text-[#6b6460] hover:border-[#d4a847]/40 hover:text-[#d4a847] hover:bg-[#d4a847]/5'
             }`}
           >
             {mode.short}
@@ -42,9 +42,9 @@ export default function WritingModeBar() {
       {writingMode && (
         <button
           onClick={() => setWritingMode(null)}
-          className="flex-shrink-0 ml-auto p-1 text-[#5a5448] hover:text-[#e8e0d4] transition-colors"
+          className="flex-shrink-0 ml-auto p-1.5 text-[#6b6460] hover:text-[#d4a847] hover:bg-[#252d3d] rounded-lg transition-all"
         >
-          <X size={12} />
+          <X size={13} />
         </button>
       )}
     </div>

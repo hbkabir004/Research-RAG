@@ -16,10 +16,10 @@ const FREE_MODELS = [
 
 function KeyStatusIcon({ status }: { status: ApiKey['status'] }) {
   switch (status) {
-    case 'active': return <CheckCircle size={13} className="text-[#3a9060]" />;
-    case 'rate-limited': return <Clock size={13} className="text-[#c8962a]" />;
-    case 'error': return <AlertCircle size={13} className="text-[#c04040]" />;
-    default: return <Key size={13} className="text-[#5a5448]" />;
+    case 'active': return <CheckCircle size={14} className="text-[#4aad7a]" />;
+    case 'rate-limited': return <Clock size={14} className="text-[#d4a847]" />;
+    case 'error': return <AlertCircle size={14} className="text-[#d85555]" />;
+    default: return <Key size={14} className="text-[#6b6460]" />;
   }
 }
 
