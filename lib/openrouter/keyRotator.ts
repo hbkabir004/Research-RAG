@@ -96,67 +96,23 @@ export async function callOpenRouter(
     }
 
     try {
-      // 1. Detect provider from the key prefix
-      const isGroqKey   = key.key.startsWith('gsk_');
-      const isGeminiKey = key.key.startsWith('AIza');
+      const isGroq = model.startsWith('groq/');
+      const apiUrl = isGroq 
+        ? 'https://api.groq.com/openai/v1/chat/completions'
+        : 'https://openrouter.ai/api/v1/chat/completions';
       
-      // 2. Determine API URL and Headers based on the KEY
-      let apiUrl = 'https://openrouter.ai/api/v1/chat/completions';
-      if (isGroqKey) {
-        apiUrl = 'https://api.groq.com/openai/v1/chat/completions';
-      } else if (isGeminiKey) {
-        // Gemini's OpenAI-compatible endpoint often works better with the key in the URL
-        apiUrl = `https://generativelanguage.googleapis.com/v1beta/openai/chat/completions?key=${key.key}`;
-      }
-      
-      const headers: Record<string, string> = {
-        'Authorization': `Bearer ${key.key}`,
-        'Content-Type': 'application/json',
-      };
-
-      if (!isGroqKey && !isGeminiKey) {
-        headers['HTTP-Referer'] = 'https://rag-research-assistant.local';
-        headers['X-Title'] = 'MSc Research Assistant';
-      }
-
-      // 3. Clean up the model ID and map if necessary
-      let cleanModel = model;
-      
-      if (isGroqKey) {
-        cleanModel = model.replace('groq/', '');
-      } else if (isGeminiKey) {
-        // Strip prefix and use standard IDs for Gemini endpoint
-        const rawModel = model.replace('gemini/', '');
-        const modelMap: Record<string, string> = {
-          'gemini-2.0-flash': 'gemini-2.0-flash',
-          'gemini-1.5-flash': 'gemini-1.5-flash',
-          'gemini-1.5-pro':   'gemini-1.5-pro',
-        };
-        cleanModel = modelMap[rawModel] || rawModel;
-      } else {
-        // Handle OpenRouter mapping (it needs the provider prefix)
-        if (model.startsWith('groq/')) {
-          const modelMap: Record<string, string> = {
-            'groq/llama-3.3-70b-versatile': 'meta-llama/llama-3.3-70b-instruct',
-            'groq/llama-3.1-70b-versatile': 'meta-llama/llama-3.1-70b-instruct',
-            'groq/mixtral-8x7b-32768':      'mistralai/mixtral-8x7b-instruct',
-          };
-          cleanModel = modelMap[model] || model.replace('groq/', 'meta-llama/');
-        } else if (model.startsWith('gemini/')) {
-          const modelMap: Record<string, string> = {
-            'gemini/gemini-2.0-flash': 'google/gemini-2.0-flash-001',
-            'gemini/gemini-1.5-flash': 'google/gemini-flash-1.5',
-            'gemini/gemini-1.5-pro':   'google/gemini-pro-1.5',
-          };
-          cleanModel = modelMap[model] || model.replace('gemini/', 'google/');
-        }
-      }
-
-      console.log(`[KeyRotator] Calling ${isGeminiKey ? 'Gemini' : isGroqKey ? 'Groq' : 'OpenRouter'} with model: ${cleanModel}`);
+      const cleanModel = isGroq ? model.replace('groq/', '') : model;
 
       const res = await fetch(apiUrl, {
         method: 'POST',
-        headers,
+        headers: {
+          'Authorization': `Bearer ${key.key}`,
+          'Content-Type': 'application/json',
+          ...(isGroq ? {} : {
+            'HTTP-Referer': 'https://rag-research-assistant.local',
+            'X-Title': 'MSc Research Assistant',
+          })
+        },
         body: JSON.stringify({
           model: cleanModel,
           messages,
@@ -183,7 +139,7 @@ export async function callOpenRouter(
           continue;
         }
 
-        throw new Error(`${isGroqKey ? 'Groq' : 'OpenRouter'} API error: ${errorMessage}`);
+        throw new Error(`${isGroq ? 'Groq' : 'OpenRouter'} API error: ${errorMessage}`);
       }
 
       const data = await res.json();

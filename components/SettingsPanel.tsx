@@ -1,7 +1,7 @@
 'use client';
 import { useAppStore } from '@/store/appStore';
 import { ApiKey } from '@/types';
-import { AlertCircle, CheckCircle, ChevronDown, Clock, Key, Loader2, Plus, Save, Trash2 } from 'lucide-react';
+import { AlertCircle, CheckCircle, ChevronDown, Clock, Key, Loader2, Plus, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 
 const MODELS = [
@@ -15,9 +15,6 @@ const MODELS = [
   { id:'groq/llama-3.3-70b-versatile',            name:'Groq: Llama 3.3 70B'   },
   { id:'groq/llama-3.1-70b-versatile',            name:'Groq: Llama 3.1 70B'   },
   { id:'groq/mixtral-8x7b-32768',                 name:'Groq: Mixtral 8x7B'    },
-  { id:'gemini/gemini-2.0-flash',                 name:'Gemini 2.0 Flash'      },
-  { id:'gemini/gemini-1.5-flash',                 name:'Gemini 1.5 Flash'      },
-  { id:'gemini/gemini-1.5-pro',                   name:'Gemini 1.5 Pro'        },
 ];
 
 const StatusIcon = ({ s }: { s: ApiKey['status'] }) => ({
@@ -148,12 +145,10 @@ export default function SettingsPanel() {
           <p style={{ fontSize:11, color:'var(--text-4)', lineHeight:1.5 }}>
             API keys at{' '}
             <a href="https://openrouter.ai/keys" target="_blank" rel="noopener noreferrer"
-              style={{ color:'var(--amber-400)', textDecoration:'underline' }}>openrouter</a>,{' '}
-            <a href="https://console.groq.com/keys" target="_blank" rel="noopener noreferrer"
-              style={{ color:'var(--amber-400)', textDecoration:'underline' }}>groq</a>
+              style={{ color:'var(--amber-400)', textDecoration:'underline' }}>openrouter.ai</a>
             {' or '}
-            <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer"
-              style={{ color:'var(--amber-400)', textDecoration:'underline' }}>google ai studio</a>
+            <a href="https://console.groq.com/keys" target="_blank" rel="noopener noreferrer"
+              style={{ color:'var(--amber-400)', textDecoration:'underline' }}>groq.com</a>
           </p>
         </div>
       </div>

@@ -9,18 +9,11 @@ export async function POST(req: NextRequest) {
     }
 
     const isGroq = apiKey.startsWith('gsk_');
-    const isGemini = apiKey.startsWith('AIza');
+    const apiUrl = isGroq 
+      ? 'https://api.groq.com/openai/v1/chat/completions'
+      : 'https://openrouter.ai/api/v1/chat/completions';
     
-    let apiUrl = 'https://openrouter.ai/api/v1/chat/completions';
-    if (isGroq) {
-      apiUrl = 'https://api.groq.com/openai/v1/chat/completions';
-    } else if (isGemini) {
-      apiUrl = `https://generativelanguage.googleapis.com/v1beta/openai/chat/completions?key=${apiKey}`;
-    }
-    
-    let model = 'meta-llama/llama-3.3-70b-instruct:free';
-    if (isGroq) model = 'llama-3.3-70b-versatile';
-    else if (isGemini) model = 'gemini-1.5-flash';
+    const model = isGroq ? 'llama-3.3-70b-versatile' : 'meta-llama/llama-3.3-70b-instruct:free';
 
     try {
       const res = await fetch(apiUrl, {
@@ -28,7 +21,7 @@ export async function POST(req: NextRequest) {
         headers: {
           'Authorization': `Bearer ${apiKey}`,
           'Content-Type': 'application/json',
-          ...(isGroq || isGemini ? {} : {
+          ...(isGroq ? {} : {
             'HTTP-Referer': 'https://rag-research-assistant.local',
             'X-Title': 'MSc Research Assistant',
           })
