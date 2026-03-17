@@ -92,13 +92,18 @@ export default function DocumentPanel() {
     setSyncProgress({ current: 0, total: 0, file: 'Starting sync...' });
     try {
       const existingNames = documents.map(d => d.name);
-      const result = await loadDocumentsFromDirectory(1000, 200, existingNames, (processed, total, currentFile) => {
-        setSyncProgress({ current: processed, total, file: currentFile });
-      });
-
-      for (const doc of result.documents) {
-        addDocument(doc);
-      }
+      const result = await loadDocumentsFromDirectory(
+        1000, 
+        200, 
+        existingNames, 
+        (processed, total, currentFile) => {
+          setSyncProgress({ current: processed, total, file: currentFile });
+        },
+        (doc) => {
+          // Add each document as it becomes ready for better UX
+          addDocument(doc);
+        }
+      );
 
       if (result.failed > 0) {
         console.warn('Some documents failed to load:', result.errors);

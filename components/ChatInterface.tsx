@@ -5,7 +5,7 @@ import { formatChunksForContext } from '@/lib/rag/chunker';
 import { getVectorStore } from '@/lib/rag/vectorStore';
 import { useAppStore } from '@/store/appStore';
 import { SourceCitation } from '@/types';
-import { AlertCircle, Send, X, Zap } from 'lucide-react';
+import { AlertCircle, Globe, Send, X, Zap } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import MessageBubble from './MessageBubble';
 import WritingModeBar from './WritingModeBar';
@@ -13,7 +13,7 @@ import WritingModeBar from './WritingModeBar';
 const genId = () => `msg_${Date.now()}_${Math.random().toString(36).slice(2,6)}`;
 
 export default function ChatInterface() {
-  const { settings, documents, sessions, currentSessionId, createSession, addMessage, updateMessage, selectedRole, writingMode } = useAppStore();
+  const { settings, updateSettings, documents, sessions, currentSessionId, createSession, addMessage, updateMessage, selectedRole, writingMode } = useAppStore();
   const [input, setInput] = useState('');
   const [streaming, setStreaming] = useState(false);
   const [error, setError] = useState<string|null>(null);
@@ -51,7 +51,30 @@ export default function ChatInterface() {
     setStreaming(true);
 
     try {
-      // RAG retrieval
+      // 1. Web Search if enabled
+      let webCtx = '';
+      if (settings.webSearchEnabled) {
+        try {
+          updateMessage(sid, aiId, { content: 'Searching the web...', isLoading: true });
+          const searchRes = await fetch('/api/web-search', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ query: text, apiKey: settings.serperApiKey })
+          });
+          if (searchRes.ok) {
+            const searchData = await searchRes.json();
+            if (searchData.results && searchData.results.length > 0) {
+              webCtx = "\n\n[Web Search Results]\n" + searchData.results.map((r: any, i: number) => 
+                `Source [W${i+1}]: ${r.title}\nURL: ${r.link}\nSnippet: ${r.snippet}`
+              ).join('\n\n');
+            }
+          }
+        } catch (searchErr) {
+          console.error('Web search failed:', searchErr);
+        }
+      }
+
+      // 2. RAG retrieval
       let sources: SourceCitation[] = [];
       let ctx = '';
       if (hasDocs && store.getSize() > 0) {
@@ -65,10 +88,15 @@ export default function ChatInterface() {
         }
       }
 
-      const sysPrompt = getSystemPrompt(selectedRole, hasDocs, writingMode);
+      const sysPrompt = getSystemPrompt(selectedRole, hasDocs || !!webCtx, writingMode);
       const history   = (session?.messages || []).filter(m => !m.isLoading).slice(-10)
         .map(m => ({ role: m.role as string, content: m.content }));
-      const userContent = ctx ? `[Retrieved Context]\n${ctx}\n\n[User Question]\n${text}` : text;
+      
+      let combinedCtx = '';
+      if (ctx) combinedCtx += `[Retrieved Document Context]\n${ctx}\n\n`;
+      if (webCtx) combinedCtx += webCtx + "\n\n";
+
+      const userContent = combinedCtx ? `${combinedCtx}[User Question]\n${text}` : text;
       const lastIsUser  = history.at(-1)?.role === 'user';
       const msgs        = [...(lastIsUser ? history.slice(0,-1) : history), { role:'user', content:userContent }];
 
@@ -129,6 +157,17 @@ export default function ChatInterface() {
           </div>
         )}
         <div className="input-wrapper">
+          <button 
+            onClick={() => updateSettings({ webSearchEnabled: !settings.webSearchEnabled })}
+            title={settings.webSearchEnabled ? "Disable Web Search" : "Enable Web Search"}
+            style={{
+              background: 'none', border: 'none', cursor: 'pointer', padding: '0 8px',
+              color: settings.webSearchEnabled ? 'var(--amber-400)' : 'var(--text-4)',
+              transition: 'all 0.2s', display: 'flex', alignItems: 'center', justifyContent: 'center'
+            }}
+          >
+            <Globe size={18} style={{ filter: settings.webSearchEnabled ? 'drop-shadow(0 0 4px var(--amber-500))' : 'none' }} />
+          </button>
           <textarea ref={taRef} value={input} onChange={e => setInput(e.target.value)}
             onKeyDown={e => { if (e.key==='Enter' && !e.shiftKey) { e.preventDefault(); send(); } }}
             placeholder={!hasKeys ? 'Add an OpenRouter API key in Settings…' : !hasDocs ? 'Upload documents or ask a general question…' : writingMode ? `Describe your ${writingMode.replace('-',' ')}…` : 'Ask about your research documents…'}

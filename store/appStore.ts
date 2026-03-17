@@ -64,6 +64,7 @@ const defaultSettings: AppSettings = {
   maxChunksPerQuery: 5,
   chunkSize: 800,
   chunkOverlap: 150,
+  webSearchEnabled: false,
 };
 
 export const useAppStore = create<AppStore>()(

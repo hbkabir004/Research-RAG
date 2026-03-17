@@ -80,12 +80,20 @@ export class VectorStore {
   private entries: VectorStoreEntry[] = [];
   private tokenizedDocs: string[][] = [];
 
-  addChunks(chunks: DocumentChunk[]): void {
-    chunks.forEach((chunk) => {
-      const tokens = tokenize(chunk.content);
-      this.tokenizedDocs.push(tokens);
-      this.entries.push({ chunk, vector: [] });
-    });
+  async addChunks(chunks: DocumentChunk[]): Promise<void> {
+    const BATCH_SIZE = 50;
+    for (let i = 0; i < chunks.length; i += BATCH_SIZE) {
+      const batch = chunks.slice(i, i + BATCH_SIZE);
+      
+      batch.forEach((chunk) => {
+        const tokens = tokenize(chunk.content);
+        this.tokenizedDocs.push(tokens);
+        this.entries.push({ chunk, vector: [] });
+      });
+
+      // Yield to main thread every batch to keep UI responsive
+      await new Promise(resolve => setTimeout(resolve, 0));
+    }
   }
 
   removeDocument(documentId: string): void {

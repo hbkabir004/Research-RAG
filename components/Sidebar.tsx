@@ -13,45 +13,53 @@ const tabs = [
 ];
 
 export default function Sidebar() {
-  const { activePanel, setActivePanel, documents, settings } = useAppStore();
+  const { activePanel, setActivePanel, documents, settings, isSidebarOpen, toggleSidebar } = useAppStore();
   const readyDocs = documents.filter(d => d.status === 'ready').length;
   const activeKeys = settings.apiKeys.filter(k => k.status !== 'error').length;
 
   return (
-    <aside className="sidebar">
-      {/* Logo */}
-      <div className="sidebar-logo">
-        <h1 style={{ fontFamily:"'Playfair Display',Georgia,serif", fontSize:22, fontWeight:700, color:'var(--amber-400)', lineHeight:1 }}>
-          Poka<span style={{ color:'var(--text-1)' }}>AI</span>
-        </h1>
-        <p style={{ fontSize:11, color:'var(--text-4)', marginTop:4 }}>MSc Research Companion</p>
-      </div>
+    <>
+      {/* Mobile Overlay */}
+      <div 
+        className={`sidebar-overlay ${isSidebarOpen ? 'open' : ''}`} 
+        onClick={toggleSidebar}
+      />
+      
+      <aside className={`sidebar ${isSidebarOpen ? 'open' : ''}`}>
+        {/* Logo */}
+        <div className="sidebar-logo">
+          <h1 style={{ fontFamily:"'Playfair Display',Georgia,serif", fontSize:22, fontWeight:700, color:'var(--amber-400)', lineHeight:1 }}>
+            Poka<span style={{ color:'var(--text-1)' }}>AI</span>
+          </h1>
+          <p style={{ fontSize:11, color:'var(--text-4)', marginTop:4 }}>MSc Research Companion</p>
+        </div>
 
-      {/* Role selector */}
-      <RoleSelector />
+        {/* Role selector */}
+        <RoleSelector />
 
-      {/* Tabs */}
-      <div className="tab-bar">
-        {tabs.map(tab => {
-          const Icon = tab.icon;
-          const badge = tab.id === 'documents' ? readyDocs : tab.id === 'settings' ? activeKeys : 0;
-          return (
-            <button key={tab.id} onClick={() => setActivePanel(tab.id)}
-              className={`tab-btn ${activePanel === tab.id ? 'active' : ''}`}>
-              {badge > 0 && <span className="tab-badge">{badge}</span>}
-              <Icon size={15} />
-              <span>{tab.label}</span>
-            </button>
-          );
-        })}
-      </div>
+        {/* Tabs */}
+        <div className="tab-bar">
+          {tabs.map(tab => {
+            const Icon = tab.icon;
+            const badge = tab.id === 'documents' ? readyDocs : tab.id === 'settings' ? activeKeys : 0;
+            return (
+              <button key={tab.id} onClick={() => setActivePanel(tab.id)}
+                className={`tab-btn ${activePanel === tab.id ? 'active' : ''}`}>
+                {badge > 0 && <span className="tab-badge">{badge}</span>}
+                <Icon size={15} />
+                <span>{tab.label}</span>
+              </button>
+            );
+          })}
+        </div>
 
-      {/* Panel content */}
-      <div className="panel-scroll">
-        {activePanel === 'documents' && <DocumentPanel />}
-        {activePanel === 'history'   && <HistoryPanel />}
-        {activePanel === 'settings'  && <SettingsPanel />}
-      </div>
-    </aside>
+        {/* Panel content */}
+        <div className="panel-scroll">
+          {activePanel === 'documents' && <DocumentPanel />}
+          {activePanel === 'history'   && <HistoryPanel />}
+          {activePanel === 'settings'  && <SettingsPanel />}
+        </div>
+      </aside>
+    </>
   );
 }

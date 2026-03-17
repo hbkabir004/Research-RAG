@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { ApiKey } from '@/types';
 
 export class KeyRotator {
@@ -96,23 +97,64 @@ export async function callOpenRouter(
     }
 
     try {
-      const isGroq = model.startsWith('groq/');
-      const apiUrl = isGroq 
-        ? 'https://api.groq.com/openai/v1/chat/completions'
-        : 'https://openrouter.ai/api/v1/chat/completions';
+      // 1. Detect provider from the key prefix
+      const isGroqKey   = key.key.startsWith('gsk_');
+      const isGeminiKey = key.key.startsWith('AIza');
       
-      const cleanModel = isGroq ? model.replace('groq/', '') : model;
+      // 2. Determine API URL and Headers based on the KEY
+      let apiUrl = 'https://openrouter.ai/api/v1/chat/completions';
+      if (isGroqKey) {
+        apiUrl = 'https://api.groq.com/openai/v1/chat/completions';
+      } else if (isGeminiKey) {
+        apiUrl = `https://generativelanguage.googleapis.com/v1beta/openai/chat/completions?key=${key.key}`;
+      }
+      
+      const headers: Record<string, string> = {
+        'Authorization': `Bearer ${key.key}`,
+        'Content-Type': 'application/json',
+      };
+
+      if (!isGroqKey && !isGeminiKey) {
+        headers['HTTP-Referer'] = 'https://rag-research-assistant.local';
+        headers['X-Title'] = 'MSc Research Assistant';
+      }
+
+      // 3. Clean up the model ID and map if necessary
+      let cleanModel = model;
+      
+      if (isGroqKey) {
+        cleanModel = model.replace('groq/', '');
+      } else if (isGeminiKey) {
+        const rawModel = model.replace('gemini/', '');
+        const modelMap: Record<string, string> = {
+          'gemini-2.0-flash': 'gemini-2.0-flash',
+          'gemini-1.5-flash': 'gemini-1.5-flash',
+          'gemini-1.5-pro':   'gemini-1.5-pro',
+        };
+        cleanModel = modelMap[rawModel] || rawModel;
+      } else {
+        if (model.startsWith('groq/')) {
+          const modelMap: Record<string, string> = {
+            'groq/llama-3.3-70b-versatile': 'meta-llama/llama-3.3-70b-instruct',
+            'groq/llama-3.1-70b-versatile': 'meta-llama/llama-3.1-70b-instruct',
+            'groq/mixtral-8x7b-32768':      'mistralai/mixtral-8x7b-instruct',
+          };
+          cleanModel = modelMap[model] || model.replace('groq/', 'meta-llama/');
+        } else if (model.startsWith('gemini/')) {
+          const modelMap: Record<string, string> = {
+            'gemini/gemini-2.0-flash': 'google/gemini-2.0-flash-001',
+            'gemini/gemini-1.5-flash': 'google/gemini-flash-1.5',
+            'gemini/gemini-1.5-pro':   'google/gemini-pro-1.5',
+          };
+          cleanModel = modelMap[model] || model.replace('gemini/', 'google/');
+        }
+      }
+
+      console.log(`[KeyRotator] Calling ${isGeminiKey ? 'Gemini' : isGroqKey ? 'Groq' : 'OpenRouter'} with model: ${cleanModel}`);
 
       const res = await fetch(apiUrl, {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${key.key}`,
-          'Content-Type': 'application/json',
-          ...(isGroq ? {} : {
-            'HTTP-Referer': 'https://rag-research-assistant.local',
-            'X-Title': 'MSc Research Assistant',
-          })
-        },
+        headers,
         body: JSON.stringify({
           model: cleanModel,
           messages,
@@ -127,6 +169,8 @@ export async function callOpenRouter(
         const errorMessage: string =
           errorBody?.error?.message || errorBody?.message || res.statusText;
 
+        console.error(`[KeyRotator] ${isGroqKey ? 'Groq' : isGeminiKey ? 'Gemini' : 'OpenRouter'} API Error:`, errorMessage);
+
         if (res.status === 429) {
           rotator.markRateLimited(key.id);
           onKeyRotate?.(rotator['currentIndex'], key.id, 'rate-limited');
@@ -139,7 +183,8 @@ export async function callOpenRouter(
           continue;
         }
 
-        throw new Error(`${isGroq ? 'Groq' : 'OpenRouter'} API error: ${errorMessage}`);
+        rotator.markError(key.id);
+        continue;
       }
 
       const data = await res.json();
@@ -153,10 +198,7 @@ export async function callOpenRouter(
       };
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
-      if (error.message?.startsWith('OpenRouter API error:')) {
-        throw error;
-      }
-      // Network/fetch errors — try next key
+      // Network/fetch errors or other unexpected errors — try next key
       rotator.markError(key.id);
       onKeyRotate?.(rotator['currentIndex'], key.id, 'network-error');
     }

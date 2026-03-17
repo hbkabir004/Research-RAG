@@ -26,6 +26,9 @@ export async function parsePDF(buffer: ArrayBuffer): Promise<{ text: string; pag
       const page = await pdf.getPage(pageNum);
       const textContent = await page.getTextContent();
 
+      // Yield to main thread every page
+      await new Promise(resolve => setTimeout(resolve, 0));
+
       // Reconstruct text with proper spacing
       let pageText = '';
       let lastY: number | null = null;

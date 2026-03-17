@@ -1,33 +1,86 @@
 
 import { DocumentChunk } from '@/types';
+import JSZip from 'jszip';
 
-// Minimal required parsers for the worker
-// In a real environment, we'd bundle these or use importScripts
-// For this task, we'll implement a simplified version of the logic
+// Minimal required functions from the chunker logic
+const MATH_PATTERNS = {
+  latexDisplay: /\$\$([\s\S]*?)\$\$/g,
+  latexInline: /\$([^$\n]+)\$/g,
+  latexEnv: /\\begin\{(equation|align|gather|multline|eqnarray)\}([\s\S]*?)\\end\{\1\}/g,
+  mathJaxInline: /\\\(([^)]+)\\\)/g,
+  mathJaxDisplay: /\\\[([^\]]+)\\\]/g,
+  fractions: /\\frac\{[^}]+\}\{[^}]+\}/g,
+  squareRoots: /\\sqrt\[[\d]+\]\{[^}]+\}|\\sqrt\{[^}]+\}/g,
+  summations: /\\sum(?:_\{[^}]*\})?(?:\^\{[^}]*\})?/g,
+  integrals: /\\int(?:_\{[^}]*\})?(?:\^\{[^}]*\})?/g,
+  limits: /\\lim_\{[^}]*\}/g,
+  binomials: /\\binom\{[^}]+\}\{[^}]+\}/g,
+  superSub: /[\w\d]+[\^_]\{?[\w\d]+\}?/g,
+  fractionsSimple: /[\w\d]+\s*\/\s*[\w\d]+/g,
+  greek: /\\(?:alpha|beta|gamma|delta|epsilon|zeta|eta|theta|iota|kappa|lambda|mu|nu|xi|omicron|pi|rho|sigma|tau|upsilon|phi|chi|psi|omega)(?:\s*\{[^}]*\})?/g,
+};
+
+function extractMathExpressions(text: string): string[] {
+  const mathExpressions: string[] = [];
+  const patterns = Object.values(MATH_PATTERNS);
+  
+  for (const pattern of patterns) {
+    let match;
+    while ((match = pattern.exec(text)) !== null) {
+      mathExpressions.push(match[0]);
+    }
+  }
+  return mathExpressions;
+}
+
+function extractTextFromSlideXML(xml: string): string {
+  // Simple XML tag stripping for PPTX slide content
+  return xml
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
 
 self.onmessage = async (e: MessageEvent) => {
-  const { file, fileType, chunkSize, chunkOverlap, id, name } = e.data;
+  const { file, fileType, chunkSize, chunkOverlap, id, name, arrayBuffer } = e.data;
 
   try {
     let text = '';
     
-    // In a Web Worker, we can't easily use the existing parsers because they
-    // rely on browser APIs like Canvas (pdfjs) or DOM-related libraries.
-    // For now, we'll handle the text-based formats and send back a request 
-    // for complex formats if they fail, or we can use the text content.
-    
     if (fileType === 'txt' || fileType === 'md') {
       text = await file.text();
+    } else if (fileType === 'pptx') {
+      const zip = await JSZip.loadAsync(arrayBuffer);
+      const slideTexts: string[] = [];
+      
+      const slideFiles = Object.keys(zip.files)
+        .filter(name => name.startsWith('ppt/slides/slide') && name.endsWith('.xml'))
+        .sort((a, b) => {
+          const matchA = a.match(/\d+/);
+          const matchB = b.match(/\d+/);
+          const numA = matchA ? parseInt(matchA[0]) : 0;
+          const numB = matchB ? parseInt(matchB[0]) : 0;
+          return numA - numB;
+        });
+
+      for (let i = 0; i < slideFiles.length; i++) {
+        const slideContent = await zip.file(slideFiles[i])?.async('string');
+        if (slideContent) {
+          const slideText = extractTextFromSlideXML(slideContent);
+          if (slideText.trim()) {
+            slideTexts.push(`[Slide ${i + 1}] ${slideText}`);
+          }
+        }
+      }
+      
+      text = slideTexts.join('\n\n');
     } else {
-      // For PDF/DOCX/PPTX, we might still need to do them on the main thread
-      // if they use APIs not available in workers.
-      // However, we can at least do the chunking here.
-      self.postMessage({ type: 'error', error: 'Complex parsing still requires main thread', fileId: id });
+      self.postMessage({ type: 'error', error: `Unsupported file type in worker: ${fileType}`, fileId: id });
       return;
     }
 
-    // Perform chunking in the worker
-    const chunks = chunkTextFromContent(text, name, id, chunkSize, chunkOverlap);
+    const mathExpressions = extractMathExpressions(text);
+    const chunks = chunkTextFromContent(text, name, id, chunkSize, chunkOverlap, mathExpressions);
     
     self.postMessage({
       type: 'success',
@@ -49,7 +102,8 @@ function chunkTextFromContent(
   documentName: string,
   documentId: string,
   chunkSize: number,
-  chunkOverlap: number
+  chunkOverlap: number,
+  mathExpressions: string[]
 ): DocumentChunk[] {
   const chunks: DocumentChunk[] = [];
   const paragraphs = text.split(/\n\n+/).filter(p => p.trim().length > 0);
@@ -65,11 +119,13 @@ function chunkTextFromContent(
         documentName,
         content: currentChunk.trim(),
         chunkIndex,
+        mathContent: mathExpressions.filter(m => currentChunk.includes(m)),
       });
       chunkIndex++;
 
       // Add overlap
-      const overlapSentences = currentChunk.split(/[.!?]+/).slice(-Math.ceil(chunkOverlap / 100)).join('. ');
+      const sentences = currentChunk.split(/[.!?]+/);
+      const overlapSentences = sentences.slice(-Math.ceil(chunkOverlap / 100)).join('. ');
       currentChunk = overlapSentences + (overlapSentences ? '. ' : '') + paragraph;
     } else {
       currentChunk += (currentChunk ? '\n\n' : '') + paragraph;
@@ -83,6 +139,7 @@ function chunkTextFromContent(
       documentName,
       content: currentChunk.trim(),
       chunkIndex,
+      mathContent: mathExpressions.filter(m => currentChunk.includes(m)),
     });
   }
 

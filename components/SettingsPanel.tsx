@@ -2,7 +2,7 @@
 import { useAppStore } from '@/store/appStore';
 import { ApiKey } from '@/types';
 import { AlertCircle, CheckCircle, ChevronDown, Clock, Key, Loader2, Plus, Save, Trash2 } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 const MODELS = [
   { id:'meta-llama/llama-3.3-70b-instruct:free', name:'Llama 3.3 70B (Free)' },
@@ -15,6 +15,9 @@ const MODELS = [
   { id:'groq/llama-3.3-70b-versatile',            name:'Groq: Llama 3.3 70B'   },
   { id:'groq/llama-3.1-70b-versatile',            name:'Groq: Llama 3.1 70B'   },
   { id:'groq/mixtral-8x7b-32768',                 name:'Groq: Mixtral 8x7B'    },
+  { id:'gemini/gemini-2.0-flash',                 name:'Gemini 2.0 Flash'      },
+  { id:'gemini/gemini-1.5-flash',                 name:'Gemini 1.5 Flash'      },
+  { id:'gemini/gemini-1.5-pro',                   name:'Gemini 1.5 Pro'        },
 ];
 
 const StatusIcon = ({ s }: { s: ApiKey['status'] }) => ({
@@ -29,10 +32,46 @@ const mask = (k: string) => k.length <= 12 ? '•'.repeat(k.length) : k.slice(0,
 export default function SettingsPanel() {
   const { settings, addApiKey, removeApiKey, updateApiKeyStatus, updateSettings } = useAppStore();
   const [keyInput, setKeyInput]   = useState('');
+  const [serperKey, setSerperKey] = useState(settings.serperApiKey || '');
   const [label,    setLabel]      = useState('');
   const [testingId, setTestingId] = useState<string|null>(null);
   const [err, setErr]             = useState('');
   const [savingId, setSavingId]   = useState<string|null>(null);
+
+  // Load keys from .env.local on mount
+  useEffect(() => {
+    const loadEnvKeys = async () => {
+      try {
+        const response = await fetch('/api/settings/load-keys');
+        if (response.ok) {
+          const data = await response.json();
+          if (data.keys && Array.isArray(data.keys)) {
+            data.keys.forEach((envKey: { key: string; label: string; type: string }) => {
+              if (envKey.type === 'serper') {
+                if (!settings.serperApiKey) {
+                  setSerperKey(envKey.key);
+                  updateSettings({ serperApiKey: envKey.key });
+                }
+              } else {
+                // Only add LLM keys if not already in state
+                const exists = settings.apiKeys.some(k => k.key === envKey.key);
+                if (!exists) {
+                  addApiKey({
+                    key: envKey.key,
+                    label: envKey.label,
+                    status: 'untested'
+                  });
+                }
+              }
+            });
+          }
+        }
+      } catch (error) {
+        console.error('Failed to load keys from .env.local', error);
+      }
+    };
+    loadEnvKeys();
+  }, [addApiKey, settings.apiKeys, settings.serperApiKey, updateSettings]); // Run once on mount
 
   const addKey = async () => {
     const k = keyInput.trim();
@@ -55,6 +94,19 @@ export default function SettingsPanel() {
     }
 
     setKeyInput(''); setLabel('');
+  };
+
+  const handleSaveSerper = async () => {
+    updateSettings({ serperApiKey: serperKey.trim() });
+    try {
+      await fetch('/api/settings/save-keys', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ key: serperKey.trim(), label: 'Serper API Key', id: 'serper' })
+      });
+    } catch (error) {
+      console.error('Failed to save Serper key', error);
+    }
   };
 
   const testKey = async (ko: ApiKey) => {
@@ -149,6 +201,31 @@ export default function SettingsPanel() {
             {' or '}
             <a href="https://console.groq.com/keys" target="_blank" rel="noopener noreferrer"
               style={{ color:'var(--amber-400)', textDecoration:'underline' }}>groq.com</a>
+          </p>
+        </div>
+      </div>
+
+      <div className="settings-divider" />
+
+      {/* Web Search */}
+      <div className="settings-section" style={{ paddingTop:14 }}>
+        <p className="settings-label">Web Search (Serper.dev)</p>
+        <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
+          <div style={{ display:'flex', gap:6 }}>
+            <input 
+              value={serperKey} 
+              onChange={e => setSerperKey(e.target.value)}
+              placeholder="Enter Serper API Key…" 
+              type="password"
+              className="input-field" 
+              style={{ flex:1, fontSize:12 }} 
+            />
+            <button onClick={handleSaveSerper} className="btn-primary" style={{ padding:'8px 12px' }}>
+              <Save size={13} />
+            </button>
+          </div>
+          <p style={{ fontSize:11, color:'var(--text-4)' }}>
+            Get a free search key at <a href="https://serper.dev" target="_blank" rel="noopener noreferrer" style={{ color:'var(--amber-400)', textDecoration:'underline' }}>serper.dev</a>
           </p>
         </div>
       </div>

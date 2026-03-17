@@ -89,6 +89,15 @@ export interface AppSettings {
   maxChunksPerQuery: number;
   chunkSize: number;
   chunkOverlap: number;
+  webSearchEnabled: boolean;
+  serperApiKey?: string;
+}
+
+export interface WebSearchResult {
+  title: string;
+  link: string;
+  snippet: string;
+  source: string;
 }
 
 export interface VectorStoreEntry {

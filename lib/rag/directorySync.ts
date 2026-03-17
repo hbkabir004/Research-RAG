@@ -1,9 +1,7 @@
-import { DocumentChunk, ProcessedDocument } from '@/types';
-import { parsePDF } from '@/lib/parsers/pdfParser';
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { parseDOCX } from '@/lib/parsers/docxParser';
-import { parseTxtFile } from '@/lib/parsers/txtParser';
-import { parseMdFile } from '@/lib/parsers/mdParser';
-import { parsePptxFile } from '@/lib/parsers/pptxParser';
+import { parsePDF } from '@/lib/parsers/pdfParser';
+import { DocumentChunk, ProcessedDocument } from '@/types';
 import { getVectorStore } from './vectorStore';
 
 export interface DocumentFile {
@@ -21,6 +19,45 @@ export interface DirectorySyncResult {
 }
 
 /**
+ * Parse a file using a Web Worker if possible
+ */
+async function parseFileWithWorker(
+  file: File,
+  fileType: 'txt' | 'md' | 'pptx',
+  chunkSize: number,
+  chunkOverlap: number,
+  arrayBuffer?: ArrayBuffer
+): Promise<DocumentChunk[]> {
+  return new Promise((resolve, reject) => {
+    const worker = new Worker(new URL('./parser.worker.ts', import.meta.url));
+    
+    worker.onmessage = (e) => {
+      if (e.data.type === 'success') {
+        resolve(e.data.chunks);
+      } else {
+        reject(new Error(e.data.error || 'Worker parsing failed'));
+      }
+      worker.terminate();
+    };
+    
+    worker.onerror = () => {
+      reject(new Error('Worker error'));
+      worker.terminate();
+    };
+    
+    worker.postMessage({
+      file,
+      fileType,
+      chunkSize,
+      chunkOverlap,
+      id: file.name,
+      name: file.name,
+      arrayBuffer
+    });
+  });
+}
+
+/**
  * Parse a file based on its extension
  */
 async function parseFileByType(
@@ -33,19 +70,21 @@ async function parseFileByType(
     case 'pdf':
       const pdfBuffer = await file.arrayBuffer();
       const pdfResult = await parsePDF(pdfBuffer);
-      // Convert text to chunks
+      // Yield to main thread after PDF parsing
+      await new Promise(resolve => setTimeout(resolve, 0));
       return chunkTextFromContent(pdfResult.text, file.name, 'pdf', chunkSize, chunkOverlap);
     case 'docx':
       const docxBuffer = await file.arrayBuffer();
       const docxResult = await parseDOCX(docxBuffer);
-      // Convert text to chunks
+      // Yield to main thread after DOCX parsing
+      await new Promise(resolve => setTimeout(resolve, 0));
       return chunkTextFromContent(docxResult.text, file.name, 'docx', chunkSize, chunkOverlap);
     case 'txt':
-      return parseTxtFile(file, chunkSize, chunkOverlap);
     case 'md':
-      return parseMdFile(file, chunkSize, chunkOverlap);
+      return parseFileWithWorker(file, fileType, chunkSize, chunkOverlap);
     case 'pptx':
-      return parsePptxFile(file, chunkSize, chunkOverlap);
+      const pptxBuffer = await file.arrayBuffer();
+      return parseFileWithWorker(file, fileType, chunkSize, chunkOverlap, pptxBuffer);
     default:
       throw new Error(`Unsupported file type: ${fileType}`);
   }
@@ -131,7 +170,8 @@ export async function loadDocumentsFromDirectory(
   chunkSize: number = 1000,
   chunkOverlap: number = 200,
   existingDocumentNames: string[] = [],
-  onProgress?: (processed: number, total: number, currentFile: string) => void
+  onProgress?: (processed: number, total: number, currentFile: string) => void,
+  onDocumentLoaded?: (doc: ProcessedDocument) => void
 ): Promise<DirectorySyncResult> {
   const result: DirectorySyncResult = {
     loaded: 0,
@@ -195,7 +235,7 @@ export async function loadDocumentsFromDirectory(
         }
 
         // Add chunks to vector store
-        vectorStore.addChunks(chunks);
+        await vectorStore.addChunks(chunks);
 
         // Create processed document
         const processedDoc: ProcessedDocument = {
@@ -211,6 +251,9 @@ export async function loadDocumentsFromDirectory(
 
         result.documents.push(processedDoc);
         result.loaded++;
+        
+        // Notify listener that a document is ready
+        if (onDocumentLoaded) onDocumentLoaded(processedDoc);
       } catch (error) {
         result.failed++;
         result.errors.push({
@@ -219,8 +262,8 @@ export async function loadDocumentsFromDirectory(
         });
       }
       
-      // Yield to main thread every file to prevent UI freeze
-      await new Promise(resolve => setTimeout(resolve, 10));
+      // Small delay to allow UI to breathe
+      await new Promise(resolve => setTimeout(resolve, 50));
     }
   } catch (error) {
     result.errors.push({

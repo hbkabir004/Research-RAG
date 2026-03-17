@@ -44,7 +44,19 @@ export default function MessageBubble({ message }: { message: Message }) {
       </div>
 
       {/* Content */}
-      <div className="msg-content" style={{ position:'relative' }}>
+      <div className="msg-content" style={{ 
+        maxWidth: '85%',
+        width: 'fit-content',
+        padding: '12px 16px',
+        borderRadius: 16,
+        background: 'var(--bg-1)',
+        color: 'var(--text-1)',
+        border: '1px solid var(--border-1)',
+        boxShadow: '0 2px 8px rgba(0,0,0,0.02)',
+        fontSize: 14,
+        lineHeight: 1.5,
+        position: 'relative'
+      }}>
         {message.isLoading ? (
           <div style={{ display:'flex', gap:6, padding:'4px 0', alignItems:'center' }}>
             <span className="dot" /><span className="dot" /><span className="dot" />
