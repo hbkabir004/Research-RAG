@@ -40,7 +40,7 @@ export async function POST(req: NextRequest) {
         fileChanges.push({
           name: file,
           lastModified: stats.mtime.getTime(),
-          action: 'new',
+          action: 'added',
         });
       }
     }
