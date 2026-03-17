@@ -1,17 +1,17 @@
 'use client';
 
+import {
+    ApiKey,
+    AppSettings,
+    ChatSession,
+    Message,
+    ProcessedDocument,
+    Role,
+    SourceCitation,
+    WritingMode,
+} from '@/types';
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import {
-  ApiKey,
-  AppSettings,
-  ChatSession,
-  Message,
-  ProcessedDocument,
-  Role,
-  SourceCitation,
-  WritingMode,
-} from '@/types';
 
 interface AppStore {
   // Settings
@@ -59,7 +59,7 @@ interface AppStore {
 const defaultSettings: AppSettings = {
   apiKeys: [],
   currentKeyIndex: 0,
-  selectedModel: 'meta-llama/llama-3.3-8b-instruct:free',
+  selectedModel: 'meta-llama/llama-3.3-70b-instruct:free',
   autoCheckPlagiarism: true,
   maxChunksPerQuery: 5,
   chunkSize: 800,

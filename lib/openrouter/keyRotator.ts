@@ -20,9 +20,6 @@ export class KeyRotator {
           apiKey: key.key,
           httpReferer: 'https://rag-research-assistant.local',
           xTitle: 'MSc Research Assistant',
-          retryConfig: {
-            strategy: 'none', // We handle retries via key rotation
-          },
         });
         this.sdkClients.set(key.id, client);
       }
@@ -128,12 +125,14 @@ export async function callOpenRouter(
     }
 
     try {
-      const response = await client.chat.send({
+      const response = await (client.chat.send as any)({
         model,
-        messages: messages as Array<{ role: 'system' | 'user' | 'assistant'; content: string }>,
-        temperature: 0.7,
-        max_tokens: 4096,
-        stream: false,
+        messages: messages as Array<{ role: 'system' | 'user' | 'assistant' | 'developer'; content: string }>,
+        chatGenerationParams: {
+          temperature: 0.1,
+          max_tokens: 4096,
+          stream: false,
+        }
       });
 
       // Mark success and return
@@ -145,6 +144,7 @@ export async function callOpenRouter(
         model: response.model || model,
         newIndex: rotator['currentIndex'],
       };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
       // Handle different error types from SDK
       const errorStatus = error?.status || error?.statusCode;

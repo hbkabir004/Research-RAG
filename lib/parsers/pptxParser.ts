@@ -15,28 +15,41 @@ export async function parsePptxFile(
   // Extract text from slide XML files
   const slideTexts: string[] = [];
 
-  // PPTX stores slides in ppt/slides/slide*.xml
+  // Optimization: Filter and process slides concurrently
   const slideFiles = Object.keys(zip.files).filter(
     name => name.startsWith('ppt/slides/slide') && name.endsWith('.xml')
-  ).sort();
+  ).sort((a, b) => {
+    const matchA = a.match(/\d+/);
+    const matchB = b.match(/\d+/);
+    const numA = matchA ? parseInt(matchA[0]) : 0;
+    const numB = matchB ? parseInt(matchB[0]) : 0;
+    return numA - numB;
+  });
 
-  for (const slideFile of slideFiles) {
-    const slideContent = await zip.file(slideFile)?.async('string');
+  const slideContents = await Promise.all(
+    slideFiles.map(file => zip.file(file)?.async('string'))
+  );
+
+  for (let i = 0; i < slideContents.length; i++) {
+    const slideContent = slideContents[i];
     if (slideContent) {
       const text = extractTextFromSlideXML(slideContent);
       if (text.trim()) {
-        slideTexts.push(text);
+        slideTexts.push(`[Slide ${i + 1}] ${text}`);
       }
     }
   }
 
-  // Extract notes from notes slides
+  // Extract notes from notes slides concurrently
   const notesFiles = Object.keys(zip.files).filter(
     name => name.startsWith('ppt/notesSlides/notesSlide') && name.endsWith('.xml')
   ).sort();
 
-  for (const notesFile of notesFiles) {
-    const notesContent = await zip.file(notesFile)?.async('string');
+  const notesContents = await Promise.all(
+    notesFiles.map(file => zip.file(file)?.async('string'))
+  );
+
+  for (const notesContent of notesContents) {
     if (notesContent) {
       const text = extractTextFromSlideXML(notesContent);
       if (text.trim()) {

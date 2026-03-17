@@ -1,16 +1,16 @@
 'use client';
-import { useRef, useState, useCallback } from 'react';
-import { Upload, FileText, Trash2, CheckCircle, AlertCircle, Loader2, X, Database, FolderOpen, RefreshCw } from 'lucide-react';
-import { useAppStore } from '@/store/appStore';
-import { parsePDF } from '@/lib/parsers/pdfParser';
 import { parseDOCX } from '@/lib/parsers/docxParser';
-import { parseTxtFile } from '@/lib/parsers/txtParser';
 import { parseMdFile } from '@/lib/parsers/mdParser';
+import { parsePDF } from '@/lib/parsers/pdfParser';
 import { parsePptxFile } from '@/lib/parsers/pptxParser';
+import { parseTxtFile } from '@/lib/parsers/txtParser';
 import { chunkText } from '@/lib/rag/chunker';
+import { DirectoryWatcher, loadDocumentsFromDirectory } from '@/lib/rag/directorySync';
 import { getVectorStore } from '@/lib/rag/vectorStore';
-import { loadDocumentsFromDirectory, DirectoryWatcher } from '@/lib/rag/directorySync';
+import { useAppStore } from '@/store/appStore';
 import { ProcessedDocument } from '@/types';
+import { AlertCircle, CheckCircle, Database, FileText, FolderOpen, Loader2, RefreshCw, Upload, X } from 'lucide-react';
+import { useCallback, useRef, useState } from 'react';
 
 const genId = () => `doc_${Date.now()}_${Math.random().toString(36).slice(2,6)}`;
 const fmtSize = (b: number) => b < 1048576 ? `${(b/1024).toFixed(1)}KB` : `${(b/1048576).toFixed(1)}MB`;
@@ -19,6 +19,7 @@ export default function DocumentPanel() {
   const { documents, addDocument, updateDocument, removeDocument } = useAppStore();
   const [dragging, setDragging] = useState(false);
   const [syncing, setSyncing] = useState(false);
+  const [syncProgress, setSyncProgress] = useState({ current: 0, total: 0, file: '' });
   const [watching, setWatching] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const watcherRef = useRef<DirectoryWatcher | null>(null);
@@ -88,15 +89,15 @@ export default function DocumentPanel() {
 
   const syncFromDirectory = useCallback(async () => {
     setSyncing(true);
+    setSyncProgress({ current: 0, total: 0, file: 'Starting sync...' });
     try {
-      const result = await loadDocumentsFromDirectory();
+      const existingNames = documents.map(d => d.name);
+      const result = await loadDocumentsFromDirectory(1000, 200, existingNames, (processed, total, currentFile) => {
+        setSyncProgress({ current: processed, total, file: currentFile });
+      });
 
       for (const doc of result.documents) {
-        // Check if document already exists
-        const existingDoc = documents.find(d => d.name === doc.name);
-        if (!existingDoc) {
-          addDocument(doc);
-        }
+        addDocument(doc);
       }
 
       if (result.failed > 0) {
@@ -106,6 +107,7 @@ export default function DocumentPanel() {
       console.error('Failed to sync from directory:', error);
     } finally {
       setSyncing(false);
+      setSyncProgress({ current: 0, total: 0, file: '' });
     }
   }, [addDocument, documents]);
 
@@ -116,14 +118,10 @@ export default function DocumentPanel() {
     } else {
       if (!watcherRef.current) {
         watcherRef.current = new DirectoryWatcher((result) => {
-          console.log('Directory changes detected:', result);
           for (const doc of result.documents) {
-            const existingDoc = documents.find(d => d.name === doc.name);
-            if (!existingDoc) {
-              addDocument(doc);
-            }
+            addDocument(doc);
           }
-        }, 30000); // Check every 30 seconds
+        }, () => documents.map(d => d.name), 30000); // Check every 30 seconds
       }
       watcherRef.current.start();
       setWatching(true);
@@ -146,37 +144,67 @@ export default function DocumentPanel() {
       )}
 
       {/* Directory sync buttons */}
-      <div style={{ display:'flex', gap:6, padding:'8px 16px', borderBottom:'1px solid var(--border-1)', background:'var(--bg-1)' }}>
-        <button
-          onClick={syncFromDirectory}
-          disabled={syncing}
-          style={{
-            display:'flex', alignItems:'center', gap:6, fontSize:10.5, fontWeight:500,
-            padding:'6px 10px', borderRadius:6, border:'1px solid var(--border-1)',
-            background:syncing ? 'var(--bg-2)' : 'var(--bg-0)', color:'var(--text-3)',
-            cursor:syncing ? 'not-allowed' : 'pointer', transition:'all 0.15s', fontFamily:'inherit',
-          }}
-          onMouseEnter={(e) => !syncing && (e.currentTarget.style.borderColor='var(--amber-600)')}
-          onMouseLeave={(e) => (e.currentTarget.style.borderColor='var(--border-1)')}
-        >
-          <FolderOpen size={12} />
-          {syncing ? 'Syncing…' : 'Load from /documents'}
-        </button>
-        <button
-          onClick={toggleDirectoryWatch}
-          style={{
-            display:'flex', alignItems:'center', gap:6, fontSize:10.5, fontWeight:500,
-            padding:'6px 10px', borderRadius:6, border:'1px solid var(--border-1)',
-            background:watching ? 'var(--amber-500)' : 'var(--bg-0)',
-            color:watching ? '#ffffff' : 'var(--text-3)',
-            cursor:'pointer', transition:'all 0.15s', fontFamily:'inherit',
-          }}
-          onMouseEnter={(e) => !watching && (e.currentTarget.style.borderColor='var(--amber-600)')}
-          onMouseLeave={(e) => !watching && (e.currentTarget.style.borderColor='var(--border-1)')}
-        >
-          {watching ? <RefreshCw size={12} style={{ animation:'spin 2s linear infinite' }} /> : <RefreshCw size={12} />}
-          {watching ? 'Watching' : 'Watch Directory'}
-        </button>
+      <div style={{ padding:'8px 16px', borderBottom:'1px solid var(--border-1)', background:'var(--bg-1)' }}>
+        <div style={{ display:'flex', gap:6, marginBottom:8 }}>
+          <button
+            onClick={syncFromDirectory}
+            disabled={syncing}
+            style={{
+              flex:1, display:'flex', alignItems:'center', justifyContent:'center', gap:6, fontSize:10.5, fontWeight:500,
+              padding:'6px 10px', borderRadius:6, border:'1px solid var(--border-1)',
+              background:syncing ? 'var(--bg-2)' : 'var(--bg-0)', color:syncing ? 'var(--text-4)' : 'var(--text-3)',
+              cursor:syncing ? 'not-allowed' : 'pointer', transition:'all 0.15s', fontFamily:'inherit',
+            }}
+            onMouseEnter={(e) => !syncing && (e.currentTarget.style.borderColor='var(--amber-600)')}
+            onMouseLeave={(e) => (e.currentTarget.style.borderColor='var(--border-1)')}
+          >
+            {syncing ? <Loader2 size={12} className="animate-spin" /> : <FolderOpen size={12} />}
+            {syncing ? 'Syncing…' : 'Sync /documents'}
+          </button>
+          <button
+            onClick={toggleDirectoryWatch}
+            style={{
+              flex:1, display:'flex', alignItems:'center', justifyContent:'center', gap:6, fontSize:10.5, fontWeight:500,
+              padding:'6px 10px', borderRadius:6, border:'1px solid var(--border-1)',
+              background:watching ? 'var(--amber-500)' : 'var(--bg-0)',
+              color:watching ? '#ffffff' : 'var(--text-3)',
+              cursor:'pointer', transition:'all 0.15s', fontFamily:'inherit',
+            }}
+            onMouseEnter={(e) => !watching && (e.currentTarget.style.borderColor='var(--amber-600)')}
+            onMouseLeave={(e) => !watching && (e.currentTarget.style.borderColor='var(--border-1)')}
+          >
+            {watching ? <RefreshCw size={12} style={{ animation:'spin 2s linear infinite' }} /> : <RefreshCw size={12} />}
+            {watching ? 'Watching' : 'Watch Folder'}
+          </button>
+        </div>
+        
+        {syncing && syncProgress.total > 0 && (
+          <div style={{ marginBottom:10, padding:'8px', background:'var(--bg-2)', borderRadius:6, border:'1px solid var(--border-1)' }}>
+            <div style={{ display:'flex', justifyContent:'space-between', marginBottom:5 }}>
+              <span style={{ fontSize:10, fontWeight:600, color:'var(--text-2)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', maxWidth:'70%' }}>
+                {syncProgress.file}
+              </span>
+              <span style={{ fontSize:10, fontWeight:600, color:'var(--amber-600)' }}>
+                {syncProgress.current} / {syncProgress.total}
+              </span>
+            </div>
+            <div style={{ height:4, width:'100%', background:'var(--bg-3)', borderRadius:2, overflow:'hidden' }}>
+              <div style={{ 
+                height:'100%', 
+                width:`${(syncProgress.current / syncProgress.total) * 100}%`, 
+                background:'var(--amber-500)',
+                transition:'width 0.3s ease'
+              }} />
+            </div>
+          </div>
+        )}
+        
+        <div style={{ 
+          fontSize:10, color:'var(--text-4)', lineHeight:1.4, 
+          padding:'6px 8px', borderRadius:4, background:'var(--bg-2)', border:'1px dashed var(--border-1)' 
+        }}>
+          <p><strong>Watch Directory:</strong> Files in <code>public/documents/</code> are automatically indexed. "Sync" checks for new files now.</p>
+        </div>
       </div>
 
       {/* Drop zone */}

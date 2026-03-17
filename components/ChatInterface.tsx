@@ -151,7 +151,7 @@ function WelcomeScreen({ hasKeys, hasDocs }: { hasKeys:boolean; hasDocs:boolean 
       <div className="step-cards">
         {[
           { n:'1', done:hasKeys, title:'Add API Keys',       desc:'Open Settings tab → add free OpenRouter keys'         },
-          { n:'2', done:hasDocs, title:'Upload Documents',   desc:'Drop PDF, DOCX, TXT, MD, or PPTX files in the Documents panel or load from /documents folder'      },
+          { n:'2', done:hasDocs, title:'Upload Documents',   desc:'Drop PDF, DOCX, TXT, MD, or PPTX files in the Documents panel, or place them in the /public/documents folder and use "Watch Directory"'      },
           { n:'3', done:false,   title:'Start Researching',  desc:'Ask questions, generate writing, check originality'   },
         ].map(s => (
           <div key={s.n} className={`step-card ${s.done ? 'done' : ''}`}>

@@ -129,7 +129,9 @@ function getFileType(filename: string): 'pdf' | 'docx' | 'txt' | 'md' | 'pptx' |
  */
 export async function loadDocumentsFromDirectory(
   chunkSize: number = 1000,
-  chunkOverlap: number = 200
+  chunkOverlap: number = 200,
+  existingDocumentNames: string[] = [],
+  onProgress?: (processed: number, total: number, currentFile: string) => void
 ): Promise<DirectorySyncResult> {
   const result: DirectorySyncResult = {
     loaded: 0,
@@ -139,33 +141,39 @@ export async function loadDocumentsFromDirectory(
   };
 
   try {
-    // Call the API to get documents from the directory
-    const response = await fetch('/api/documents/list');
+    // 1. Get a list of files without content first to see what's new
+    const listResponse = await fetch('/api/documents/list?skipContent=true');
+    if (!listResponse.ok) throw new Error(`Failed to list documents: ${listResponse.statusText}`);
+    const listData = await listResponse.json();
 
-    if (!response.ok) {
-      throw new Error(`Failed to list documents: ${response.statusText}`);
-    }
-
-    const data = await response.json();
-
-    if (!data.documents || !Array.isArray(data.documents)) {
+    if (!listData.documents || !Array.isArray(listData.documents)) {
       return result;
     }
 
     const vectorStore = getVectorStore();
+    const newFiles = listData.documents.filter((doc: any) => !existingDocumentNames.includes(doc.name));
 
-    for (const doc of data.documents) {
+    if (newFiles.length === 0) return result;
+
+    const totalFiles = newFiles.length;
+    let processedCount = 0;
+
+    // 2. Fetch and process only new files one by one to avoid memory pressure and blocking
+    for (const fileMeta of newFiles) {
+      processedCount++;
+      if (onProgress) onProgress(processedCount, totalFiles, fileMeta.name);
+      
       try {
-        const fileType = getFileType(doc.name);
+        const fileType = getFileType(fileMeta.name);
+        if (!fileType) continue;
 
-        if (!fileType) {
-          result.failed++;
-          result.errors.push({
-            file: doc.name,
-            error: 'Unsupported file type',
-          });
-          continue;
-        }
+        // Fetch full content for this specific file
+        const fileResponse = await fetch(`/api/documents/list?file=${encodeURIComponent(fileMeta.name)}`);
+        if (!fileResponse.ok) throw new Error(`Failed to fetch content for ${fileMeta.name}`);
+        const fileData = await fileResponse.json();
+        const doc = fileData.documents[0];
+
+        if (!doc || !doc.content) continue;
 
         // Create a File object from the base64 content
         const content = atob(doc.content);
@@ -182,10 +190,7 @@ export async function loadDocumentsFromDirectory(
 
         if (chunks.length === 0) {
           result.failed++;
-          result.errors.push({
-            file: doc.name,
-            error: 'No content extracted',
-          });
+          result.errors.push({ file: doc.name, error: 'No content extracted' });
           continue;
         }
 
@@ -209,10 +214,13 @@ export async function loadDocumentsFromDirectory(
       } catch (error) {
         result.failed++;
         result.errors.push({
-          file: doc.name,
+          file: fileMeta.name,
           error: error instanceof Error ? error.message : 'Unknown error',
         });
       }
+      
+      // Yield to main thread every file to prevent UI freeze
+      await new Promise(resolve => setTimeout(resolve, 10));
     }
   } catch (error) {
     result.errors.push({
@@ -226,26 +234,26 @@ export async function loadDocumentsFromDirectory(
 
 /**
  * Watch for changes in the documents directory
- * This polls the server for changes at the specified interval
  */
 export class DirectoryWatcher {
   private intervalId: number | null = null;
   private lastSyncTime: number = 0;
   private onChangeCallback: (result: DirectorySyncResult) => void;
   private pollInterval: number;
+  private getExistingNames: () => string[];
 
   constructor(
     onChange: (result: DirectorySyncResult) => void,
+    getExistingNames: () => string[],
     pollInterval: number = 30000 // 30 seconds default
   ) {
     this.onChangeCallback = onChange;
+    this.getExistingNames = getExistingNames;
     this.pollInterval = pollInterval;
   }
 
   start(): void {
-    if (this.intervalId !== null) {
-      return; // Already running
-    }
+    if (this.intervalId !== null) return;
 
     this.intervalId = window.setInterval(async () => {
       try {
@@ -259,9 +267,11 @@ export class DirectoryWatcher {
           const data = await response.json();
 
           if (data.hasChanges) {
-            const result = await loadDocumentsFromDirectory();
-            this.lastSyncTime = Date.now();
-            this.onChangeCallback(result);
+            const result = await loadDocumentsFromDirectory(1000, 200, this.getExistingNames());
+            if (result.loaded > 0) {
+              this.lastSyncTime = Date.now();
+              this.onChangeCallback(result);
+            }
           }
         }
       } catch (error) {
@@ -275,12 +285,6 @@ export class DirectoryWatcher {
       window.clearInterval(this.intervalId);
       this.intervalId = null;
     }
-  }
-
-  async syncNow(): Promise<DirectorySyncResult> {
-    const result = await loadDocumentsFromDirectory();
-    this.lastSyncTime = Date.now();
-    return result;
   }
 
   isRunning(): boolean {

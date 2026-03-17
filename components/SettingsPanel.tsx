@@ -5,12 +5,13 @@ import { useAppStore } from '@/store/appStore';
 import { ApiKey } from '@/types';
 
 const MODELS = [
-  { id:'meta-llama/llama-3.3-8b-instruct:free',  name:'Llama 3.3 8B (Free)'  },
+  { id:'meta-llama/llama-3.3-70b-instruct:free', name:'Llama 3.3 70B (Free)' },
   { id:'meta-llama/llama-3.1-8b-instruct:free',  name:'Llama 3.1 8B (Free)'  },
-  { id:'google/gemma-3-9b-it:free',               name:'Gemma 3 9B (Free)'    },
+  { id:'meta-llama/llama-3-8b-instruct:free',    name:'Llama 3 8B (Free)'    },
+  { id:'google/gemma-2-9b-it:free',               name:'Gemma 2 9B (Free)'    },
   { id:'mistralai/mistral-7b-instruct:free',      name:'Mistral 7B (Free)'    },
   { id:'deepseek/deepseek-r1:free',               name:'DeepSeek R1 (Free)'   },
-  { id:'qwen/qwen3-8b:free',                      name:'Qwen3 8B (Free)'      },
+  { id:'qwen/qwen2.5-7b-instruct:free',           name:'Qwen 2.5 7B (Free)'   },
 ];
 
 const StatusIcon = ({ s }: { s: ApiKey['status'] }) => ({

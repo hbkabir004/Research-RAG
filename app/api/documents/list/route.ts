@@ -19,6 +19,10 @@ const MIME_TYPES: Record<string, string> = {
 
 export async function GET(req: NextRequest) {
   try {
+    const searchParams = req.nextUrl.searchParams;
+    const skipContent = searchParams.get('skipContent') === 'true';
+    const specificFile = searchParams.get('file');
+
     const documentsDir = join(process.cwd(), 'public', 'documents');
 
     // Check if documents directory exists
@@ -33,6 +37,10 @@ export async function GET(req: NextRequest) {
     const documents = [];
 
     for (const file of files) {
+      if (specificFile && file !== specificFile) {
+        continue;
+      }
+
       const ext = '.' + file.split('.').pop()?.toLowerCase();
 
       if (!SUPPORTED_EXTENSIONS.includes(ext)) {
@@ -42,9 +50,12 @@ export async function GET(req: NextRequest) {
       const filePath = join(documentsDir, file);
       const stats = require('fs').statSync(filePath);
 
-      // Read file and convert to base64
-      const fileBuffer = await readFile(filePath);
-      const base64Content = fileBuffer.toString('base64');
+      let base64Content = null;
+      if (!skipContent) {
+        // Read file and convert to base64
+        const fileBuffer = await readFile(filePath);
+        base64Content = fileBuffer.toString('base64');
+      }
 
       documents.push({
         name: file,

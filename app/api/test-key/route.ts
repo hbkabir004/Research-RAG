@@ -1,5 +1,5 @@
-import { NextRequest, NextResponse } from 'next/server';
 import { OpenRouter } from '@openrouter/sdk';
+import { NextRequest, NextResponse } from 'next/server';
 
 export async function POST(req: NextRequest) {
   try {
@@ -9,18 +9,22 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'No API key provided' }, { status: 400 });
     }
 
-    const client = new OpenRouter({
+    const openrouter = new OpenRouter({
       apiKey,
       httpReferer: 'https://rag-research-assistant.local',
       xTitle: 'MSc Research Assistant',
-      retryConfig: { strategy: 'none' },
     });
 
     try {
-      const response = await client.chat.send({
-        model: 'meta-llama/llama-3.3-8b-instruct:free',
+      // Using the pattern provided by the user (non-streaming for test-key check)
+      const response = await (openrouter.chat.send as any)({
+        model: 'meta-llama/llama-3.3-70b-instruct:free',
         messages: [{ role: 'user', content: 'Say "OK" only.' }],
-        max_tokens: 10,
+        chatGenerationParams: {
+          stream: false,
+          temperature: 0.7,
+          max_tokens: 4096
+        }
       });
 
       return NextResponse.json({ status: 'valid', message: 'API key is working correctly' });
