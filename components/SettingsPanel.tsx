@@ -1,7 +1,7 @@
 'use client';
 import { useAppStore } from '@/store/appStore';
 import { ApiKey } from '@/types';
-import { AlertCircle, CheckCircle, ChevronDown, Clock, Key, Loader2, Plus, Trash2 } from 'lucide-react';
+import { AlertCircle, CheckCircle, ChevronDown, Clock, Key, Loader2, Plus, Save, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 
 const MODELS = [
