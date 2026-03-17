@@ -1,8 +1,8 @@
 'use client';
-import { useState } from 'react';
-import { Plus, Trash2, CheckCircle, AlertCircle, Clock, Key, Loader2, ChevronDown } from 'lucide-react';
 import { useAppStore } from '@/store/appStore';
 import { ApiKey } from '@/types';
+import { AlertCircle, CheckCircle, ChevronDown, Clock, Key, Loader2, Plus, Trash2 } from 'lucide-react';
+import { useState } from 'react';
 
 const MODELS = [
   { id:'meta-llama/llama-3.3-70b-instruct:free', name:'Llama 3.3 70B (Free)' },
@@ -12,6 +12,9 @@ const MODELS = [
   { id:'mistralai/mistral-7b-instruct:free',      name:'Mistral 7B (Free)'    },
   { id:'deepseek/deepseek-r1:free',               name:'DeepSeek R1 (Free)'   },
   { id:'qwen/qwen2.5-7b-instruct:free',           name:'Qwen 2.5 7B (Free)'   },
+  { id:'groq/llama-3.3-70b-versatile',            name:'Groq: Llama 3.3 70B'   },
+  { id:'groq/llama-3.1-70b-versatile',            name:'Groq: Llama 3.1 70B'   },
+  { id:'groq/mixtral-8x7b-32768',                 name:'Groq: Mixtral 8x7B'    },
 ];
 
 const StatusIcon = ({ s }: { s: ApiKey['status'] }) => ({
@@ -56,7 +59,7 @@ export default function SettingsPanel() {
       {/* API Keys */}
       <div className="settings-section">
         <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:10 }}>
-          <p className="settings-label" style={{ marginBottom:0 }}>OpenRouter Keys</p>
+          <p className="settings-label" style={{ marginBottom:0 }}>API Keys</p>
           {settings.apiKeys.length > 0 && (
             <span style={{ fontSize:11, fontFamily:'JetBrains Mono,monospace', color: active>0 ? 'var(--green-400)' : 'var(--red-400)' }}>
               {active}/{settings.apiKeys.length} active
@@ -93,7 +96,7 @@ export default function SettingsPanel() {
           <div style={{ display:'flex', gap:6 }}>
             <input value={keyInput} onChange={e => { setKeyInput(e.target.value); setErr(''); }}
               onKeyDown={e => e.key==='Enter' && addKey()}
-              placeholder="sk-or-v1-…" type="password"
+              placeholder="Paste key here…" type="password"
               className="input-field" style={{ flex:1, fontSize:12, fontFamily:'JetBrains Mono,monospace' }} />
             <button onClick={addKey} className="btn-primary" style={{ padding:'8px 12px', whiteSpace:'nowrap' }}>
               <Plus size={13} /> Add
@@ -101,9 +104,12 @@ export default function SettingsPanel() {
           </div>
           {err && <p style={{ fontSize:11.5, color:'var(--red-400)' }}>{err}</p>}
           <p style={{ fontSize:11, color:'var(--text-4)', lineHeight:1.5 }}>
-            Free keys at{' '}
+            API keys at{' '}
             <a href="https://openrouter.ai/keys" target="_blank" rel="noopener noreferrer"
-              style={{ color:'var(--amber-400)', textDecoration:'underline' }}>openrouter.ai/keys</a>
+              style={{ color:'var(--amber-400)', textDecoration:'underline' }}>openrouter.ai</a>
+            {' or '}
+            <a href="https://console.groq.com/keys" target="_blank" rel="noopener noreferrer"
+              style={{ color:'var(--amber-400)', textDecoration:'underline' }}>groq.com</a>
           </p>
         </div>
       </div>

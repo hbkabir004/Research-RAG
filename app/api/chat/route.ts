@@ -1,6 +1,6 @@
-import { NextRequest, NextResponse } from 'next/server';
 import { callOpenRouter } from '@/lib/openrouter/keyRotator';
 import { ApiKey } from '@/types';
+import { NextRequest, NextResponse } from 'next/server';
 
 export async function POST(req: NextRequest) {
   try {
@@ -26,13 +26,13 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const activeKeys = apiKeys.filter((k) => k.status !== 'error');
-    if (activeKeys.length === 0) {
-      return NextResponse.json(
-        { error: 'All API keys have failed. Please check your API keys in Settings.' },
-        { status: 400 }
-      );
-    }
+    // Reset any client-side error/rate-limit statuses — the server validates
+    // keys fresh on every request, so stale frontend state should not block calls.
+    const freshKeys: ApiKey[] = apiKeys.map((k) => ({
+      ...k,
+      status: 'active' as const,
+      rateLimitedUntil: undefined,
+    }));
 
     const messagesWithSystem = [
       { role: 'system', content: systemPrompt },
@@ -42,8 +42,8 @@ export async function POST(req: NextRequest) {
     const result = await callOpenRouter(
       messagesWithSystem,
       model || 'meta-llama/llama-3.3-8b-instruct:free',
-      activeKeys,
-      currentKeyIndex
+      freshKeys,
+      currentKeyIndex ?? 0
     );
 
     return NextResponse.json({

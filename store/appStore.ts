@@ -1,14 +1,14 @@
 'use client';
 
 import {
-    ApiKey,
-    AppSettings,
-    ChatSession,
-    Message,
-    ProcessedDocument,
-    Role,
-    SourceCitation,
-    WritingMode,
+  ApiKey,
+  AppSettings,
+  ChatSession,
+  Message,
+  ProcessedDocument,
+  Role,
+  SourceCitation,
+  WritingMode,
 } from '@/types';
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
