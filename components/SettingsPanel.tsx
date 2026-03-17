@@ -1,8 +1,8 @@
 'use client';
-import { useState } from 'react';
-import { Plus, Trash2, CheckCircle, AlertCircle, Clock, Key, Loader2, ChevronDown } from 'lucide-react';
 import { useAppStore } from '@/store/appStore';
 import { ApiKey } from '@/types';
+import { AlertCircle, CheckCircle, ChevronDown, Clock, Key, Loader2, Plus, Save, Trash2 } from 'lucide-react';
+import { useState } from 'react';
 
 const MODELS = [
   { id:'meta-llama/llama-3.3-70b-instruct:free', name:'Llama 3.3 70B (Free)' },
@@ -12,6 +12,12 @@ const MODELS = [
   { id:'mistralai/mistral-7b-instruct:free',      name:'Mistral 7B (Free)'    },
   { id:'deepseek/deepseek-r1:free',               name:'DeepSeek R1 (Free)'   },
   { id:'qwen/qwen2.5-7b-instruct:free',           name:'Qwen 2.5 7B (Free)'   },
+  { id:'groq/llama-3.3-70b-versatile',            name:'Groq: Llama 3.3 70B'   },
+  { id:'groq/llama-3.1-70b-versatile',            name:'Groq: Llama 3.1 70B'   },
+  { id:'groq/mixtral-8x7b-32768',                 name:'Groq: Mixtral 8x7B'    },
+  { id:'gemini/gemini-2.0-flash',                 name:'Gemini 2.0 Flash'      },
+  { id:'gemini/gemini-1.5-flash',                 name:'Gemini 1.5 Flash'      },
+  { id:'gemini/gemini-1.5-pro',                   name:'Gemini 1.5 Pro'        },
 ];
 
 const StatusIcon = ({ s }: { s: ApiKey['status'] }) => ({
@@ -29,12 +35,28 @@ export default function SettingsPanel() {
   const [label,    setLabel]      = useState('');
   const [testingId, setTestingId] = useState<string|null>(null);
   const [err, setErr]             = useState('');
+  const [savingId, setSavingId]   = useState<string|null>(null);
 
-  const addKey = () => {
+  const addKey = async () => {
     const k = keyInput.trim();
+    const l = label.trim() || `Key ${settings.apiKeys.length+1}`;
     if (!k) { setErr('Enter an API key'); return; }
     setErr('');
-    addApiKey({ key:k, label: label.trim() || `Key ${settings.apiKeys.length+1}`, status:'untested' });
+    
+    // Save to local store (zustand + localStorage)
+    addApiKey({ key:k, label: l, status:'untested' });
+    
+    // Proactively save to .env.local via API
+    try {
+      await fetch('/api/settings/save-keys', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ key: k, label: l, id: `key_${Date.now()}` })
+      });
+    } catch (error) {
+      console.error('Failed to save key to .env.local', error);
+    }
+
     setKeyInput(''); setLabel('');
   };
 
@@ -48,6 +70,24 @@ export default function SettingsPanel() {
     finally { setTestingId(null); }
   };
 
+  const saveKeyToEnv = async (ko: ApiKey) => {
+    setSavingId(ko.id);
+    try {
+      const r = await fetch('/api/settings/save-keys', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ key: ko.key, label: ko.label, id: ko.id })
+      });
+      if (r.ok) {
+        // Show temporary success state if needed
+      }
+    } catch (error) {
+      console.error('Failed to save key to .env.local', error);
+    } finally {
+      setSavingId(null);
+    }
+  };
+
   const active = settings.apiKeys.filter(k => k.status==='active').length;
 
   return (
@@ -56,7 +96,7 @@ export default function SettingsPanel() {
       {/* API Keys */}
       <div className="settings-section">
         <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:10 }}>
-          <p className="settings-label" style={{ marginBottom:0 }}>OpenRouter Keys</p>
+          <p className="settings-label" style={{ marginBottom:0 }}>API Keys</p>
           {settings.apiKeys.length > 0 && (
             <span style={{ fontSize:11, fontFamily:'JetBrains Mono,monospace', color: active>0 ? 'var(--green-400)' : 'var(--red-400)' }}>
               {active}/{settings.apiKeys.length} active
@@ -78,6 +118,11 @@ export default function SettingsPanel() {
                 <button onClick={() => testKey(ko)} disabled={testingId===ko.id} className="btn-ghost" style={{ fontSize:11, padding:'4px 8px' }}>
                   {testingId===ko.id ? <Loader2 size={11} style={{ animation:'spin 1s linear infinite' }} /> : 'Test'}
                 </button>
+                <button onClick={() => saveKeyToEnv(ko)} disabled={savingId===ko.id} className="btn-ghost" 
+                  style={{ fontSize:11, padding:'4px 8px', display:'flex', alignItems:'center', gap:4, color:'var(--amber-400)' }}>
+                  {savingId===ko.id ? <Loader2 size={11} style={{ animation:'spin 1s linear infinite' }} /> : <Save size={11} />}
+                  Save
+                </button>
                 <button onClick={() => removeApiKey(ko.id)} style={{ background:'none', border:'none', cursor:'pointer', color:'var(--text-4)', padding:4, borderRadius:4 }}
                   onMouseEnter={e => (e.currentTarget as HTMLButtonElement).style.color='var(--red-400)'}
                   onMouseLeave={e => (e.currentTarget as HTMLButtonElement).style.color='var(--text-4)'}>
@@ -93,7 +138,7 @@ export default function SettingsPanel() {
           <div style={{ display:'flex', gap:6 }}>
             <input value={keyInput} onChange={e => { setKeyInput(e.target.value); setErr(''); }}
               onKeyDown={e => e.key==='Enter' && addKey()}
-              placeholder="sk-or-v1-…" type="password"
+              placeholder="Paste key here…" type="password"
               className="input-field" style={{ flex:1, fontSize:12, fontFamily:'JetBrains Mono,monospace' }} />
             <button onClick={addKey} className="btn-primary" style={{ padding:'8px 12px', whiteSpace:'nowrap' }}>
               <Plus size={13} /> Add
@@ -101,9 +146,14 @@ export default function SettingsPanel() {
           </div>
           {err && <p style={{ fontSize:11.5, color:'var(--red-400)' }}>{err}</p>}
           <p style={{ fontSize:11, color:'var(--text-4)', lineHeight:1.5 }}>
-            Free keys at{' '}
+            API keys at{' '}
             <a href="https://openrouter.ai/keys" target="_blank" rel="noopener noreferrer"
-              style={{ color:'var(--amber-400)', textDecoration:'underline' }}>openrouter.ai/keys</a>
+              style={{ color:'var(--amber-400)', textDecoration:'underline' }}>openrouter</a>,{' '}
+            <a href="https://console.groq.com/keys" target="_blank" rel="noopener noreferrer"
+              style={{ color:'var(--amber-400)', textDecoration:'underline' }}>groq</a>
+            {' or '}
+            <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer"
+              style={{ color:'var(--amber-400)', textDecoration:'underline' }}>google ai studio</a>
           </p>
         </div>
       </div>

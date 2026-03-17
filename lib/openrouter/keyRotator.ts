@@ -1,29 +1,12 @@
 import { ApiKey } from '@/types';
-import { OpenRouter } from '@openrouter/sdk';
 
 export class KeyRotator {
   private keys: ApiKey[];
   private currentIndex: number;
-  private sdkClients: Map<string, OpenRouter>;
 
   constructor(keys: ApiKey[]) {
     this.keys = keys;
     this.currentIndex = 0;
-    this.sdkClients = new Map();
-    this.initializeClients();
-  }
-
-  private initializeClients(): void {
-    for (const key of this.keys) {
-      if (!this.sdkClients.has(key.id)) {
-        const client = new OpenRouter({
-          apiKey: key.key,
-          httpReferer: 'https://rag-research-assistant.local',
-          xTitle: 'MSc Research Assistant',
-        });
-        this.sdkClients.set(key.id, client);
-      }
-    }
   }
 
   private isKeyAvailable(key: ApiKey): boolean {
@@ -42,7 +25,6 @@ export class KeyRotator {
     const available = this.keys.filter((k) => this.isKeyAvailable(k));
     if (available.length === 0) return null;
 
-    // Find next available key starting from currentIndex
     for (let i = 0; i < this.keys.length; i++) {
       const idx = (this.currentIndex + i) % this.keys.length;
       if (this.isKeyAvailable(this.keys[idx])) {
@@ -53,16 +35,11 @@ export class KeyRotator {
     return null;
   }
 
-  getSDKClient(keyId: string): OpenRouter | null {
-    return this.sdkClients.get(keyId) || null;
-  }
-
   markRateLimited(keyId: string): void {
     const key = this.keys.find((k) => k.id === keyId);
     if (key) {
       key.status = 'rate-limited';
-      key.rateLimitedUntil = Date.now() + 60 * 1000; // 1 minute cooldown
-      // Advance to next key
+      key.rateLimitedUntil = Date.now() + 60 * 1000;
       this.currentIndex = (this.currentIndex + 1) % this.keys.length;
     }
   }
@@ -95,7 +72,6 @@ export class KeyRotator {
   updateKeys(keys: ApiKey[]): void {
     this.keys = keys;
     this.currentIndex = 0;
-    this.initializeClients();
   }
 }
 
@@ -114,55 +90,119 @@ export async function callOpenRouter(
   for (let attempt = 0; attempt < maxRetries; attempt++) {
     const key = rotator.getCurrentKey();
     if (!key) {
-      throw new Error('All API keys are exhausted or rate-limited. Please add more keys or wait for rate limits to reset.');
-    }
-
-    const client = rotator.getSDKClient(key.id);
-    if (!client) {
-      rotator.markError(key.id);
-      onKeyRotate?.(rotator['currentIndex'], key.id, 'client-error');
-      continue;
+      throw new Error(
+        'All API keys are exhausted or rate-limited. Please add more keys or wait for rate limits to reset.'
+      );
     }
 
     try {
-      const response = await (client.chat.send as any)({
-        model,
-        messages: messages as Array<{ role: 'system' | 'user' | 'assistant' | 'developer'; content: string }>,
-        chatGenerationParams: {
+      // 1. Detect provider from the key prefix
+      const isGroqKey   = key.key.startsWith('gsk_');
+      const isGeminiKey = key.key.startsWith('AIza');
+      
+      // 2. Determine API URL and Headers based on the KEY
+      let apiUrl = 'https://openrouter.ai/api/v1/chat/completions';
+      if (isGroqKey) {
+        apiUrl = 'https://api.groq.com/openai/v1/chat/completions';
+      } else if (isGeminiKey) {
+        // Gemini's OpenAI-compatible endpoint often works better with the key in the URL
+        apiUrl = `https://generativelanguage.googleapis.com/v1beta/openai/chat/completions?key=${key.key}`;
+      }
+      
+      const headers: Record<string, string> = {
+        'Authorization': `Bearer ${key.key}`,
+        'Content-Type': 'application/json',
+      };
+
+      if (!isGroqKey && !isGeminiKey) {
+        headers['HTTP-Referer'] = 'https://rag-research-assistant.local';
+        headers['X-Title'] = 'MSc Research Assistant';
+      }
+
+      // 3. Clean up the model ID and map if necessary
+      let cleanModel = model;
+      
+      if (isGroqKey) {
+        cleanModel = model.replace('groq/', '');
+      } else if (isGeminiKey) {
+        // Strip prefix and use standard IDs for Gemini endpoint
+        const rawModel = model.replace('gemini/', '');
+        const modelMap: Record<string, string> = {
+          'gemini-2.0-flash': 'gemini-2.0-flash',
+          'gemini-1.5-flash': 'gemini-1.5-flash',
+          'gemini-1.5-pro':   'gemini-1.5-pro',
+        };
+        cleanModel = modelMap[rawModel] || rawModel;
+      } else {
+        // Handle OpenRouter mapping (it needs the provider prefix)
+        if (model.startsWith('groq/')) {
+          const modelMap: Record<string, string> = {
+            'groq/llama-3.3-70b-versatile': 'meta-llama/llama-3.3-70b-instruct',
+            'groq/llama-3.1-70b-versatile': 'meta-llama/llama-3.1-70b-instruct',
+            'groq/mixtral-8x7b-32768':      'mistralai/mixtral-8x7b-instruct',
+          };
+          cleanModel = modelMap[model] || model.replace('groq/', 'meta-llama/');
+        } else if (model.startsWith('gemini/')) {
+          const modelMap: Record<string, string> = {
+            'gemini/gemini-2.0-flash': 'google/gemini-2.0-flash-001',
+            'gemini/gemini-1.5-flash': 'google/gemini-flash-1.5',
+            'gemini/gemini-1.5-pro':   'google/gemini-pro-1.5',
+          };
+          cleanModel = modelMap[model] || model.replace('gemini/', 'google/');
+        }
+      }
+
+      console.log(`[KeyRotator] Calling ${isGeminiKey ? 'Gemini' : isGroqKey ? 'Groq' : 'OpenRouter'} with model: ${cleanModel}`);
+
+      const res = await fetch(apiUrl, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          model: cleanModel,
+          messages,
           temperature: 0.1,
           max_tokens: 4096,
           stream: false,
-        }
+        }),
       });
 
-      // Mark success and return
+      if (!res.ok) {
+        const errorBody = await res.json().catch(() => ({}));
+        const errorMessage: string =
+          errorBody?.error?.message || errorBody?.message || res.statusText;
+
+        if (res.status === 429) {
+          rotator.markRateLimited(key.id);
+          onKeyRotate?.(rotator['currentIndex'], key.id, 'rate-limited');
+          continue;
+        }
+
+        if (res.status === 401 || res.status === 403) {
+          rotator.markError(key.id);
+          onKeyRotate?.(rotator['currentIndex'], key.id, 'auth-error');
+          continue;
+        }
+
+        throw new Error(`${isGroqKey ? 'Groq' : 'OpenRouter'} API error: ${errorMessage}`);
+      }
+
+      const data = await res.json();
       rotator.markSuccess(key.id);
 
       return {
-        content: response.choices?.[0]?.message?.content || '',
+        content: data.choices?.[0]?.message?.content || '',
         usedKeyId: key.id,
-        model: response.model || model,
+        model: data.model || model,
         newIndex: rotator['currentIndex'],
       };
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
-      // Handle different error types from SDK
-      const errorStatus = error?.status || error?.statusCode;
-
-      if (errorStatus === 429 || error?.error?.type === 'rate_limit_error') {
-        rotator.markRateLimited(key.id);
-        onKeyRotate?.(rotator['currentIndex'], key.id, 'rate-limited');
-        continue;
+      if (error.message?.startsWith('OpenRouter API error:')) {
+        throw error;
       }
-
-      if (errorStatus === 401 || errorStatus === 403 || error?.error?.type === 'authentication_error') {
-        rotator.markError(key.id);
-        onKeyRotate?.(rotator['currentIndex'], key.id, 'auth-error');
-        continue;
-      }
-
-      // For other errors, throw immediately (these are likely request format errors)
-      throw new Error(`OpenRouter API error: ${error.message || errorStatus || 'Unknown error'}`);
+      // Network/fetch errors — try next key
+      rotator.markError(key.id);
+      onKeyRotate?.(rotator['currentIndex'], key.id, 'network-error');
     }
   }
 
