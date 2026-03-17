@@ -1,13 +1,11 @@
 import type { NextConfig } from "next";
+import path from "path";
 
 const nextConfig: NextConfig = {
-  // Add turbopack config to avoid errors
+  // Fix Turbopack canvas alias (used with `next dev --turbopack`)
   turbopack: {
-    rules: {
-      // Handle canvas module in Turbopack
-      '*.node': {
-        loaders: ['empty-loader'],
-      },
+    resolveAlias: {
+      canvas: "./lib/parsers/canvasMock.js",
     },
   },
   webpack: (config, { isServer }) => {
@@ -15,8 +13,7 @@ const nextConfig: NextConfig = {
     if (!isServer) {
       config.resolve.alias = {
         ...config.resolve.alias,
-        // Use our canvas mock
-        canvas: require.resolve('./lib/parsers/canvasMock.js'),
+        canvas: path.resolve("./lib/parsers/canvasMock.js"),
       };
 
       config.resolve.fallback = {
