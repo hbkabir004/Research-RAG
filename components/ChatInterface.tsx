@@ -1,12 +1,12 @@
 'use client';
-import { useState, useRef, useEffect, useCallback } from 'react';
-import { Send, Zap, AlertCircle, X } from 'lucide-react';
-import { useAppStore } from '@/store/appStore';
-import { getVectorStore } from '@/lib/rag/vectorStore';
-import { getSystemPrompt } from '@/lib/prompts/systemPrompts';
 import { checkPlagiarism } from '@/lib/plagiarism/checker';
+import { getSystemPrompt } from '@/lib/prompts/systemPrompts';
 import { formatChunksForContext } from '@/lib/rag/chunker';
-import { Message, SourceCitation } from '@/types';
+import { getVectorStore } from '@/lib/rag/vectorStore';
+import { useAppStore } from '@/store/appStore';
+import { SourceCitation } from '@/types';
+import { AlertCircle, Send, X, Zap } from 'lucide-react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import MessageBubble from './MessageBubble';
 import WritingModeBar from './WritingModeBar';
 
@@ -145,13 +145,13 @@ export default function ChatInterface() {
 function WelcomeScreen({ hasKeys, hasDocs }: { hasKeys:boolean; hasDocs:boolean }) {
   return (
     <div className="welcome">
-      <p className="welcome-title">Research<span style={{ color:'var(--text-1)' }}>AI</span></p>
+      <p className="welcome-title">Poka<span style={{ color:'var(--text-1)' }}>AI</span></p>
       <p className="welcome-sub">Your intelligent MSc research companion — upload papers, ask questions, generate academic writing with full citations.</p>
 
       <div className="step-cards">
         {[
           { n:'1', done:hasKeys, title:'Add API Keys',       desc:'Open Settings tab → add free OpenRouter keys'         },
-          { n:'2', done:hasDocs, title:'Upload Documents',   desc:'Drop .pdf or .docx files in the Documents panel'      },
+          { n:'2', done:hasDocs, title:'Upload Documents',   desc:'Drop PDF, DOCX, TXT, MD, or PPTX files in the Documents panel or load from /documents folder'      },
           { n:'3', done:false,   title:'Start Researching',  desc:'Ask questions, generate writing, check originality'   },
         ].map(s => (
           <div key={s.n} className={`step-card ${s.done ? 'done' : ''}`}>

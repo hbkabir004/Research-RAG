@@ -9,7 +9,7 @@ export default function Home() {
       <main className="main">
         <div className="topbar">
           <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-            <span style={{ width:8, height:8, borderRadius:'50%', background:'var(--amber-400)', display:'block', boxShadow:'0 0 8px var(--amber-500)' }} />
+            <span style={{ width:8, height:8, borderRadius:'50%', background:'var(--green-400)', display:'block', boxShadow:'0 0 8px var(--green-400)' }} />
             <span style={{ fontSize:12, color:'var(--text-3)', fontWeight:500 }}>RAG Pipeline Active</span>
           </div>
           <span style={{ fontSize:11.5, color:'var(--text-4)' }}>

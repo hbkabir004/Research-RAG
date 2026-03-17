@@ -1,53 +1,67 @@
+// PDF parser using pdfjs-dist with proper canvas handling
 export async function parsePDF(buffer: ArrayBuffer): Promise<{ text: string; pageCount: number }> {
-  // Dynamic import to avoid SSR issues
-  const pdfjsLib = await import('pdfjs-dist');
-
-  // Set worker source - use CDN for browser compatibility
-  if (typeof window !== 'undefined') {
-    pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+  // Ensure we're in browser environment
+  if (typeof window === 'undefined') {
+    throw new Error('PDF parsing is only supported in the browser');
   }
 
-  const loadingTask = pdfjsLib.getDocument({ data: buffer });
-  const pdf = await loadingTask.promise;
+  try {
+    // Use dynamic import with proper error handling
+    const pdfjsLib = await import('pdfjs-dist/legacy/build/pdf.js');
 
-  const textPages: string[] = [];
+    // Set worker source for browser
+    if (typeof pdfjsLib !== 'undefined' && !pdfjsLib.GlobalWorkerOptions.workerSrc) {
+      pdfjsLib.GlobalWorkerOptions.workerSrc =
+        'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/legacy/build/pdf.worker.min.js';
+    }
 
-  for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
-    const page = await pdf.getPage(pageNum);
-    const textContent = await page.getTextContent();
+    // Load the PDF document
+    const loadingTask = pdfjsLib.getDocument({ data: buffer });
+    const pdf = await loadingTask.promise;
 
-    // Reconstruct text with proper spacing
-    let pageText = '';
-    let lastY: number | null = null;
-    let lastX: number | null = null;
+    const textPages: string[] = [];
 
-    for (const item of textContent.items) {
-      if ('str' in item) {
-        const textItem = item as { str: string; transform: number[] };
-        const y = textItem.transform[5];
-        const x = textItem.transform[4];
+    // Extract text from each page
+    for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+      const page = await pdf.getPage(pageNum);
+      const textContent = await page.getTextContent();
 
-        if (lastY !== null && Math.abs(y - lastY) > 5) {
-          // New line
-          pageText += '\n';
-        } else if (lastX !== null && x - lastX > 20) {
-          // Gap between items on same line
-          pageText += ' ';
+      // Reconstruct text with proper spacing
+      let pageText = '';
+      let lastY: number | null = null;
+      let lastX: number | null = null;
+
+      for (const item of textContent.items) {
+        if ('str' in item) {
+          const textItem = item as { str: string; transform: number[] };
+          const y = textItem.transform[5];
+          const x = textItem.transform[4];
+
+          if (lastY !== null && Math.abs(y - lastY) > 5) {
+            // New line
+            pageText += '\n';
+          } else if (lastX !== null && x - lastX > 20) {
+            // Gap between items on same line
+            pageText += ' ';
+          }
+
+          pageText += textItem.str;
+          lastY = y;
+          lastX = x + (textItem.str.length * 6); // approximate width
         }
+      }
 
-        pageText += textItem.str;
-        lastY = y;
-        lastX = x + (textItem.str.length * 6); // approximate width
+      if (pageText.trim()) {
+        textPages.push(`[Page ${pageNum}]\n${pageText.trim()}`);
       }
     }
 
-    if (pageText.trim()) {
-      textPages.push(`[Page ${pageNum}]\n${pageText.trim()}`);
-    }
+    return {
+      text: textPages.join('\n\n'),
+      pageCount: pdf.numPages,
+    };
+  } catch (error) {
+    console.error('PDF parsing error:', error);
+    throw new Error(`Failed to parse PDF: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
-
-  return {
-    text: textPages.join('\n\n'),
-    pageCount: pdf.numPages,
-  };
 }

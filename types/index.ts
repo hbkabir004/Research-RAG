@@ -31,7 +31,7 @@ export interface DocumentChunk {
 export interface ProcessedDocument {
   id: string;
   name: string;
-  type: 'pdf' | 'docx';
+  type: 'pdf' | 'docx' | 'txt' | 'md' | 'pptx';
   size: number;
   chunks: DocumentChunk[];
   processedAt: number;

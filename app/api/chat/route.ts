@@ -50,6 +50,7 @@ export async function POST(req: NextRequest) {
       content: result.content,
       usedKeyId: result.usedKeyId,
       model: result.model,
+      newIndex: result.newIndex,
     });
   } catch (error) {
     console.error('Chat API error:', error);

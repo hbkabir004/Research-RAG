@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { OpenRouter } from '@openrouter/sdk';
 
 export async function POST(req: NextRequest) {
   try {
@@ -8,35 +9,40 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'No API key provided' }, { status: 400 });
     }
 
-    const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${apiKey}`,
-        'HTTP-Referer': 'https://rag-research-assistant.local',
-        'X-Title': 'MSc Research Assistant',
-      },
-      body: JSON.stringify({
+    const client = new OpenRouter({
+      apiKey,
+      httpReferer: 'https://rag-research-assistant.local',
+      xTitle: 'MSc Research Assistant',
+      retryConfig: { strategy: 'none' },
+    });
+
+    try {
+      const response = await client.chat.send({
         model: 'meta-llama/llama-3.3-8b-instruct:free',
         messages: [{ role: 'user', content: 'Say "OK" only.' }],
         max_tokens: 10,
-      }),
-    });
+      });
 
-    if (response.status === 429) {
-      return NextResponse.json({ status: 'rate-limited', message: 'Key is valid but currently rate-limited' });
+      return NextResponse.json({ status: 'valid', message: 'API key is working correctly' });
+    } catch (error: any) {
+      const errorStatus = error?.status || error?.statusCode;
+
+      if (errorStatus === 429 || error?.error?.type === 'rate_limit_error') {
+        return NextResponse.json({
+          status: 'rate-limited',
+          message: 'Key is valid but currently rate-limited'
+        });
+      }
+
+      if (errorStatus === 401 || errorStatus === 403 || error?.error?.type === 'authentication_error') {
+        return NextResponse.json({ status: 'invalid', message: 'Invalid API key' });
+      }
+
+      return NextResponse.json({
+        status: 'error',
+        message: `API error: ${error.message || errorStatus || 'Unknown error'}`
+      });
     }
-
-    if (response.status === 401 || response.status === 403) {
-      return NextResponse.json({ status: 'invalid', message: 'Invalid API key' });
-    }
-
-    if (!response.ok) {
-      const error = await response.json().catch(() => ({}));
-      return NextResponse.json({ status: 'error', message: `API error: ${response.status}` });
-    }
-
-    return NextResponse.json({ status: 'valid', message: 'API key is working correctly' });
   } catch (error) {
     return NextResponse.json(
       { status: 'error', message: error instanceof Error ? error.message : 'Connection failed' },

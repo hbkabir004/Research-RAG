@@ -1,12 +1,32 @@
 import { ApiKey } from '@/types';
+import { OpenRouter } from '@openrouter/sdk';
 
 export class KeyRotator {
   private keys: ApiKey[];
   private currentIndex: number;
+  private sdkClients: Map<string, OpenRouter>;
 
   constructor(keys: ApiKey[]) {
     this.keys = keys;
     this.currentIndex = 0;
+    this.sdkClients = new Map();
+    this.initializeClients();
+  }
+
+  private initializeClients(): void {
+    for (const key of this.keys) {
+      if (!this.sdkClients.has(key.id)) {
+        const client = new OpenRouter({
+          apiKey: key.key,
+          httpReferer: 'https://rag-research-assistant.local',
+          xTitle: 'MSc Research Assistant',
+          retryConfig: {
+            strategy: 'none', // We handle retries via key rotation
+          },
+        });
+        this.sdkClients.set(key.id, client);
+      }
+    }
   }
 
   private isKeyAvailable(key: ApiKey): boolean {
@@ -34,6 +54,10 @@ export class KeyRotator {
       }
     }
     return null;
+  }
+
+  getSDKClient(keyId: string): OpenRouter | null {
+    return this.sdkClients.get(keyId) || null;
   }
 
   markRateLimited(keyId: string): void {
@@ -70,6 +94,12 @@ export class KeyRotator {
       errored: this.keys.filter((k) => k.status === 'error').length,
     };
   }
+
+  updateKeys(keys: ApiKey[]): void {
+    this.keys = keys;
+    this.currentIndex = 0;
+    this.initializeClients();
+  }
 }
 
 export async function callOpenRouter(
@@ -78,7 +108,7 @@ export async function callOpenRouter(
   keys: ApiKey[],
   currentKeyIndex: number,
   onKeyRotate?: (newIndex: number, keyId: string, reason: string) => void
-): Promise<{ content: string; usedKeyId: string; model: string }> {
+): Promise<{ content: string; usedKeyId: string; model: string; newIndex: number }> {
   const rotator = new KeyRotator(keys);
   rotator['currentIndex'] = currentKeyIndex;
 
@@ -90,54 +120,49 @@ export async function callOpenRouter(
       throw new Error('All API keys are exhausted or rate-limited. Please add more keys or wait for rate limits to reset.');
     }
 
+    const client = rotator.getSDKClient(key.id);
+    if (!client) {
+      rotator.markError(key.id);
+      onKeyRotate?.(rotator['currentIndex'], key.id, 'client-error');
+      continue;
+    }
+
     try {
-      const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${key.key}`,
-          'HTTP-Referer': 'https://rag-research-assistant.local',
-          'X-Title': 'MSc Research Assistant',
-        },
-        body: JSON.stringify({
-          model,
-          messages,
-          temperature: 0.7,
-          max_tokens: 4096,
-          stream: false,
-        }),
+      const response = await client.chat.send({
+        model,
+        messages: messages as Array<{ role: 'system' | 'user' | 'assistant'; content: string }>,
+        temperature: 0.7,
+        max_tokens: 4096,
+        stream: false,
       });
 
-      if (response.status === 429) {
+      // Mark success and return
+      rotator.markSuccess(key.id);
+
+      return {
+        content: response.choices?.[0]?.message?.content || '',
+        usedKeyId: key.id,
+        model: response.model || model,
+        newIndex: rotator['currentIndex'],
+      };
+    } catch (error: any) {
+      // Handle different error types from SDK
+      const errorStatus = error?.status || error?.statusCode;
+
+      if (errorStatus === 429 || error?.error?.type === 'rate_limit_error') {
         rotator.markRateLimited(key.id);
         onKeyRotate?.(rotator['currentIndex'], key.id, 'rate-limited');
         continue;
       }
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        if (response.status === 401 || response.status === 403) {
-          rotator.markError(key.id);
-          onKeyRotate?.(rotator['currentIndex'], key.id, 'auth-error');
-          continue;
-        }
-        throw new Error(`OpenRouter API error: ${response.status} - ${JSON.stringify(errorData)}`);
+      if (errorStatus === 401 || errorStatus === 403 || error?.error?.type === 'authentication_error') {
+        rotator.markError(key.id);
+        onKeyRotate?.(rotator['currentIndex'], key.id, 'auth-error');
+        continue;
       }
 
-      const data = await response.json();
-      rotator.markSuccess(key.id);
-
-      return {
-        content: data.choices[0]?.message?.content || '',
-        usedKeyId: key.id,
-        model: data.model || model,
-      };
-    } catch (error) {
-      if (error instanceof Error && error.message.includes('OpenRouter API error')) {
-        throw error;
-      }
-      rotator.markError(key.id);
-      onKeyRotate?.(rotator['currentIndex'], key.id, 'network-error');
+      // For other errors, throw immediately (these are likely request format errors)
+      throw new Error(`OpenRouter API error: ${error.message || errorStatus || 'Unknown error'}`);
     }
   }
 

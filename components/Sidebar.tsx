@@ -1,10 +1,10 @@
 'use client';
-import { FileText, History, Settings2 } from 'lucide-react';
 import { useAppStore } from '@/store/appStore';
+import { FileText, History, Settings2 } from 'lucide-react';
 import DocumentPanel from './DocumentPanel';
 import HistoryPanel from './HistoryPanel';
-import SettingsPanel from './SettingsPanel';
 import RoleSelector from './RoleSelector';
+import SettingsPanel from './SettingsPanel';
 
 const tabs = [
   { id: 'documents' as const, icon: FileText, label: 'Docs' },
@@ -22,7 +22,7 @@ export default function Sidebar() {
       {/* Logo */}
       <div className="sidebar-logo">
         <h1 style={{ fontFamily:"'Playfair Display',Georgia,serif", fontSize:22, fontWeight:700, color:'var(--amber-400)', lineHeight:1 }}>
-          Research<span style={{ color:'var(--text-1)' }}>AI</span>
+          Poka<span style={{ color:'var(--text-1)' }}>AI</span>
         </h1>
         <p style={{ fontSize:11, color:'var(--text-4)', marginTop:4 }}>MSc Research Companion</p>
       </div>

@@ -3,7 +3,7 @@ import type { Metadata } from 'next';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'ResearchAI — MSc Research Assistant',
+  title: 'PokaAI — MSc Research Assistant',
   description: 'AI-powered RAG chatbot for academic research',
 };
 
