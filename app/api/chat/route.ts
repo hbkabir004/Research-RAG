@@ -43,7 +43,10 @@ export async function POST(req: NextRequest) {
       messagesWithSystem,
       model || 'meta-llama/llama-3.3-8b-instruct:free',
       activeKeys,
-      currentKeyIndex
+      currentKeyIndex,
+      (newIndex, keyId, reason) => {
+        console.log(`[Key Rotation] Rotated from key ${keyId}. Reason: ${reason}. New index: ${newIndex}`);
+      }
     );
 
     return NextResponse.json({

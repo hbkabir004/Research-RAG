@@ -19,10 +19,10 @@ export default function WritingModeBar() {
   const { writingMode, setWritingMode } = useAppStore();
 
   return (
-    <div className="flex items-center gap-2 px-3 py-2 border-b border-[#1e2535] overflow-x-auto">
+    <div className="flex items-center gap-2 px-3 py-2 border-b border-[#e5dfd6] overflow-x-auto">
       <div className="flex items-center gap-1.5 flex-shrink-0">
         <PenLine size={12} className="text-[#c8962a]" />
-        <span className="text-xs text-[#5a5448]">Write:</span>
+        <span className="text-xs text-[#a39a91]">Write:</span>
       </div>
       <div className="flex items-center gap-1 flex-nowrap">
         {WRITING_MODES.map((mode) => (
@@ -31,8 +31,8 @@ export default function WritingModeBar() {
             onClick={() => setWritingMode(writingMode === mode.id ? null : mode.id)}
             className={`flex-shrink-0 px-2.5 py-1 text-xs rounded-full border transition-all ${
               writingMode === mode.id
-                ? 'bg-[#c8962a] border-[#c8962a] text-[#0a0c10] font-medium'
-                : 'border-[#1e2535] text-[#5a5448] hover:border-[#3a4a60] hover:text-[#9a9080]'
+                ? 'bg-[#c8962a] border-[#c8962a] text-[#f8f7f5] font-medium'
+                : 'border-[#e5dfd6] text-[#a39a91] hover:border-[#c8a860] hover:text-[#6b6460]'
             }`}
           >
             {mode.short}
@@ -42,7 +42,7 @@ export default function WritingModeBar() {
       {writingMode && (
         <button
           onClick={() => setWritingMode(null)}
-          className="flex-shrink-0 ml-auto p-1 text-[#5a5448] hover:text-[#e8e0d4] transition-colors"
+          className="flex-shrink-0 ml-auto p-1 text-[#a39a91] hover:text-[#2d2522] transition-colors"
         >
           <X size={12} />
         </button>

@@ -1,15 +1,28 @@
 import { ApiKey } from '@/types';
 
+interface KeyUsageData {
+  requestsToday: number;
+  creditsUsed: number;
+  creditsRemaining: number;
+  createdAt: number;
+}
+
+interface KeyMetadata extends ApiKey {
+  usageData?: KeyUsageData;
+  requestCount?: number;
+  lastCheckTime?: number;
+}
+
 export class KeyRotator {
-  private keys: ApiKey[];
+  private keys: KeyMetadata[];
   private currentIndex: number;
 
   constructor(keys: ApiKey[]) {
-    this.keys = keys;
+    this.keys = keys.map((k) => ({ ...k })) as KeyMetadata[];
     this.currentIndex = 0;
   }
 
-  private isKeyAvailable(key: ApiKey): boolean {
+  private isKeyAvailable(key: KeyMetadata): boolean {
     if (key.status === 'error') return false;
     if (key.status === 'rate-limited') {
       if (key.rateLimitedUntil && Date.now() > key.rateLimitedUntil) {
@@ -18,10 +31,16 @@ export class KeyRotator {
       }
       return false;
     }
+    // Check if usage is near limit (using request count as heuristic)
+    if (key.requestCount && key.requestCount > 100) {
+      key.status = 'rate-limited';
+      key.rateLimitedUntil = Date.now() + 60 * 60 * 1000; // 1 hour cooldown for limit
+      return false;
+    }
     return true;
   }
 
-  getCurrentKey(): ApiKey | null {
+  getCurrentKey(): KeyMetadata | null {
     const available = this.keys.filter((k) => this.isKeyAvailable(k));
     if (available.length === 0) return null;
 
@@ -59,6 +78,7 @@ export class KeyRotator {
     if (key) {
       key.status = 'active';
       key.lastUsed = Date.now();
+      key.requestCount = (key.requestCount || 0) + 1;
     }
   }
 
@@ -107,6 +127,13 @@ export async function callOpenRouter(
           stream: false,
         }),
       });
+
+      // Check for usage limit warnings in response headers
+      const creditsRemaining = response.headers.get('openrouter-x-credits-remaining');
+      if (creditsRemaining && parseFloat(creditsRemaining) < 0.5) {
+        // Credits running low, mark for rotation but still use
+        onKeyRotate?.(currentKeyIndex, key.id, 'credits-low');
+      }
 
       if (response.status === 429) {
         rotator.markRateLimited(key.id);

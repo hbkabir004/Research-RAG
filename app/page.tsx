@@ -9,13 +9,13 @@ export default function Home() {
       <div className="w-64 flex-shrink-0">
         <Sidebar />
       </div>
-      <main className="flex-1 min-w-0 flex flex-col bg-[#0a0c10]">
-        <header className="flex items-center justify-between px-6 py-3 border-b border-[#1e2535] flex-shrink-0">
+      <main className="flex-1 min-w-0 flex flex-col bg-[#f8f7f5]">
+        <header className="flex items-center justify-between px-6 py-3 border-b border-[#e5dfd6] flex-shrink-0">
           <div className="flex items-center gap-2">
             <div className="w-2 h-2 rounded-full bg-[#c8962a] animate-pulse" />
-            <span className="text-xs text-[#9a9080]">RAG Pipeline Active</span>
+            <span className="text-xs text-[#6b6460]">RAG Pipeline Active</span>
           </div>
-          <span className="text-xs text-[#3a4050]">
+          <span className="text-xs text-[#a39a91]">
             Shift+Enter for new line · Enter to send
           </span>
         </header>

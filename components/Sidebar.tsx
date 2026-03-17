@@ -20,25 +20,25 @@ export default function Sidebar() {
   const keyCount = settings.apiKeys.filter((k) => k.status !== 'error').length;
 
   return (
-    <aside className="flex flex-col h-full border-r border-[#1e2535] bg-[#0a0c10]">
+    <aside className="flex flex-col h-full border-r border-[#e5dfd6] bg-[#f8f7f5]">
       {/* Logo */}
-      <div className="px-4 py-3 border-b border-[#1e2535]">
+      <div className="px-4 py-3 border-b border-[#e5dfd6]">
         <h1
           className="text-xl font-semibold text-[#c8962a]"
           style={{ fontFamily: 'Cormorant Garamond, serif' }}
         >
-          Research<span className="text-[#e8e0d4]">AI</span>
+          Research<span className="text-[#2d2522]">AI</span>
         </h1>
-        <p className="text-xs text-[#3a4050] mt-0.5">MSc Research Companion</p>
+        <p className="text-xs text-[#a39a91] mt-0.5">MSc Research Companion</p>
       </div>
 
       {/* Role Selector */}
-      <div className="border-b border-[#1e2535]">
+      <div className="border-b border-[#e5dfd6]">
         <RoleSelector />
       </div>
 
       {/* Tab bar */}
-      <div className="flex border-b border-[#1e2535]">
+      <div className="flex border-b border-[#e5dfd6]">
         {tabs.map((tab) => {
           const Icon = tab.icon;
           const badge =
@@ -52,13 +52,13 @@ export default function Sidebar() {
               className={`flex-1 flex flex-col items-center gap-0.5 py-2 text-xs transition-colors relative ${
                 activePanel === tab.id
                   ? 'text-[#c8962a] border-b-2 border-[#c8962a]'
-                  : 'text-[#5a5448] hover:text-[#9a9080]'
+                  : 'text-[#9a9489] hover:text-[#6b6460]'
               }`}
             >
               <Icon size={14} />
               <span>{tab.label}</span>
               {badge > 0 && (
-                <span className="absolute top-1 right-3 w-4 h-4 rounded-full bg-[#c8962a] text-[#0a0c10] text-[9px] font-bold flex items-center justify-center">
+                <span className="absolute top-1 right-3 w-4 h-4 rounded-full bg-[#c8962a] text-[#f8f7f5] text-[9px] font-bold flex items-center justify-center">
                   {badge}
                 </span>
               )}

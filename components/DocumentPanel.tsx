@@ -99,13 +99,13 @@ export default function DocumentPanel() {
     <div className="flex flex-col h-full">
       {/* Stats bar */}
       {readyDocs.length > 0 && (
-        <div className="px-3 py-2 flex items-center gap-3 border-b border-[#1e2535]">
+        <div className="px-3 py-2 flex items-center gap-3 border-b border-[#e5dfd6]">
           <div className="flex items-center gap-1.5">
             <BookOpen size={11} className="text-[#c8962a]" />
-            <span className="text-xs text-[#9a9080]">{readyDocs.length} docs</span>
+            <span className="text-xs text-[#6b6460]">{readyDocs.length} docs</span>
           </div>
-          <span className="text-[#3a4050]">·</span>
-          <span className="text-xs text-[#9a9080]">{totalChunks} chunks indexed</span>
+          <span className="text-[#a39a91]">·</span>
+          <span className="text-xs text-[#6b6460]">{totalChunks} chunks indexed</span>
         </div>
       )}
 
@@ -114,16 +114,16 @@ export default function DocumentPanel() {
         className={`m-3 border-2 border-dashed rounded-lg p-4 text-center cursor-pointer transition-all duration-200 ${
           isDragging
             ? 'border-[#c8962a] bg-[rgba(200,150,42,0.05)]'
-            : 'border-[#1e2535] hover:border-[#3a4a60] hover:bg-[#0f1219]'
+            : 'border-[#e5dfd6] hover:border-[#c8a860] hover:bg-[#f3f1ed]'
         }`}
         onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
         onDragLeave={() => setIsDragging(false)}
         onDrop={handleDrop}
         onClick={() => fileInputRef.current?.click()}
       >
-        <Upload size={18} className={`mx-auto mb-2 ${isDragging ? 'text-[#c8962a]' : 'text-[#5a5448]'}`} />
-        <p className="text-xs text-[#5a5448]">Drop .pdf or .docx files</p>
-        <p className="text-xs text-[#3a4050] mt-0.5">or click to browse</p>
+        <Upload size={18} className={`mx-auto mb-2 ${isDragging ? 'text-[#c8962a]' : 'text-[#a39a91]'}`} />
+        <p className="text-xs text-[#a39a91]">Drop .pdf or .docx files</p>
+        <p className="text-xs text-[#a39a91] mt-0.5">or click to browse</p>
         <input
           ref={fileInputRef}
           type="file"
@@ -138,9 +138,9 @@ export default function DocumentPanel() {
       <div className="flex-1 overflow-y-auto px-3 space-y-1.5">
         {documents.length === 0 ? (
           <div className="text-center py-8">
-            <FileText size={28} className="mx-auto text-[#2a3040] mb-2" />
-            <p className="text-xs text-[#3a4050]">No documents yet</p>
-            <p className="text-xs text-[#2a3040] mt-1">Upload research papers to begin</p>
+            <FileText size={28} className="mx-auto text-[#a39a91] mb-2" />
+            <p className="text-xs text-[#a39a91]">No documents yet</p>
+            <p className="text-xs text-[#a39a91] mt-1">Upload research papers to begin</p>
           </div>
         ) : (
           documents.map((doc) => (
@@ -156,40 +156,40 @@ function DocumentItem({ doc, onRemove }: { doc: ProcessedDocument; onRemove: () 
   return (
     <div className={`group flex items-start gap-2 p-2.5 rounded-md border transition-all ${
       doc.status === 'ready'
-        ? 'border-[#1e2535] bg-[#0f1219] hover:border-[#2a3545]'
+        ? 'border-[#e5dfd6] bg-[#ffffff] hover:border-[#d9b968]'
         : doc.status === 'error'
-        ? 'border-[#4a2020] bg-[#1a0f0f]'
-        : 'border-[#1e2535] bg-[#0f1219]'
+        ? 'border-[#e5b5b5] bg-[#fae8e8]'
+        : 'border-[#e5dfd6] bg-[#ffffff]'
     }`}>
       {/* Icon */}
       <div className="flex-shrink-0 mt-0.5">
         {doc.status === 'processing' ? (
           <Loader2 size={14} className="text-[#c8962a] animate-spin" />
         ) : doc.status === 'error' ? (
-          <AlertCircle size={14} className="text-[#c04040]" />
+          <AlertCircle size={14} className="text-[#d04040]" />
         ) : (
-          <CheckCircle size={14} className="text-[#3a9060]" />
+          <CheckCircle size={14} className="text-[#4a9060]" />
         )}
       </div>
 
       {/* Info */}
       <div className="flex-1 min-w-0">
-        <p className="text-xs text-[#e8e0d4] truncate leading-tight" title={doc.name}>
+        <p className="text-xs text-[#2d2522] truncate leading-tight" title={doc.name}>
           {doc.name}
         </p>
         <div className="flex items-center gap-2 mt-0.5">
-          <span className="text-xs text-[#5a5448] uppercase font-mono-custom">{doc.type}</span>
-          <span className="text-[#2a3040]">·</span>
-          <span className="text-xs text-[#5a5448]">{formatSize(doc.size)}</span>
+          <span className="text-xs text-[#a39a91] uppercase font-mono-custom">{doc.type}</span>
+          <span className="text-[#a39a91]">·</span>
+          <span className="text-xs text-[#a39a91]">{formatSize(doc.size)}</span>
           {doc.status === 'ready' && doc.chunks.length > 0 && (
             <>
-              <span className="text-[#2a3040]">·</span>
-              <span className="text-xs text-[#3a9060]">{doc.chunks.length} chunks</span>
+              <span className="text-[#a39a91]">·</span>
+              <span className="text-xs text-[#4a9060]">{doc.chunks.length} chunks</span>
             </>
           )}
         </div>
         {doc.status === 'error' && doc.errorMessage && (
-          <p className="text-xs text-[#c04040] mt-0.5 truncate">{doc.errorMessage}</p>
+          <p className="text-xs text-[#d04040] mt-0.5 truncate">{doc.errorMessage}</p>
         )}
         {doc.status === 'processing' && (
           <p className="text-xs text-[#c8962a] mt-0.5">Indexing…</p>
@@ -200,7 +200,7 @@ function DocumentItem({ doc, onRemove }: { doc: ProcessedDocument; onRemove: () 
       {doc.status !== 'processing' && (
         <button
           onClick={onRemove}
-          className="flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity p-0.5 hover:text-[#c04040] text-[#5a5448]"
+          className="flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity p-0.5 hover:text-[#d04040] text-[#a39a91]"
         >
           <X size={13} />
         </button>

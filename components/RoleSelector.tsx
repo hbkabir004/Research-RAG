@@ -9,7 +9,7 @@ export default function RoleSelector() {
 
   return (
     <div className="px-3 py-2">
-      <p className="text-xs uppercase tracking-widest text-[#5a5448] mb-2 px-1">Research Mode</p>
+      <p className="text-xs uppercase tracking-widest text-[#a39a91] mb-2 px-1">Research Mode</p>
       <div className="grid grid-cols-2 gap-1">
         {(Object.values(ROLES) as ReturnType<typeof Object.values<typeof ROLES[Role]>>[number][]).map((role) => {
           const isActive = selectedRole === role.id;
@@ -19,8 +19,8 @@ export default function RoleSelector() {
               onClick={() => setSelectedRole(role.id as Role)}
               className={`relative flex flex-col items-start gap-0.5 px-3 py-2 rounded-md text-left transition-all duration-150 ${
                 isActive
-                  ? 'bg-[#1e2535] border border-[#c8962a]/40 text-[#e8b040]'
-                  : 'border border-transparent text-[#9a9080] hover:bg-[#141820] hover:text-[#e8e0d4]'
+                  ? 'bg-[#f3f1ed] border border-[#c8962a]/40 text-[#c8962a]'
+                  : 'border border-transparent text-[#6b6460] hover:bg-[#efe9e0] hover:text-[#2d2522]'
               }`}
             >
               <span className="text-base leading-none">{role.emoji}</span>
